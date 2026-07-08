@@ -1,0 +1,41 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: aiart-platform
+  datasource:
+    url: ${AIART_DB_URL:jdbc:mysql://localhost:3306/aiart_codex_platform?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${AIART_DB_USER:root}
+    password: ${AIART_DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: ${AIART_REDIS_HOST:localhost}
+      port: ${AIART_REDIS_PORT:6379}
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 100MB
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: assign_id
+
+aiart:
+  jwt:
+    secret: ${AIART_JWT_SECRET:aiart-codex-platform-default-secret-please-change}
+    expiration-seconds: ${AIART_JWT_EXPIRATION_SECONDS:604800}
+  storage:
+    upload-root: ${AIART_UPLOAD_ROOT:uploads}
+  generation:
+    sd-webui:
+      base-url: ${AIART_SD_BASE_URL:http://127.0.0.1:7860}
+      timeout-seconds: ${AIART_SD_TIMEOUT_SECONDS:300}
+
+logging:
+  level:
+    com.aiart.platform: INFO

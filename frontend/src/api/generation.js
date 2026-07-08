@@ -1,0 +1,15 @@
+import client from './client'
+
+export const generateTxt2Img = (payload) => client.post('/generation/txt2img', payload)
+export const generateImg2Img = (payload) => client.post('/generation/img2img', payload)
+export const queueTxt2Img = (payload) => client.post('/generation/queue/txt2img', payload)
+export const queueImg2Img = (payload) => client.post('/generation/queue/img2img', payload)
+export const getGenerationJob = (jobId) => client.get(`/generation/jobs/${jobId}`)
+export const getMyGenerationJobs = (params = {}) => client.get('/generation/jobs/my', { params })
+export const cancelGenerationJob = (jobId) => client.post(`/generation/jobs/${jobId}/cancel`)
+export const getProviderModels = () => client.get('/generation/provider/models')
+export const getProviderSamplers = () => client.get('/generation/provider/samplers')
+export const getProviderOptions = () => client.get('/generation/provider/options')
+export const getProviderLoras = () => client.get('/generation/provider/loras')
+export const getProviderVaes = () => client.get('/generation/provider/vaes')
+export const getProviderUpscalers = () => client.get('/generation/provider/upscalers')

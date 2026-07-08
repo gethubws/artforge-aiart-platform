@@ -1,14 +1,14 @@
 <template>
-  <section class="style-view content-hub-page">
-    <div class="page-heading hub-heading">
-      <div>
+  <section class="style-view content-hub-page market-page-shell">
+    <header class="page-hero hub-hero">
+      <div class="hero-copy">
         <p class="eyebrow">Style Packages</p>
         <h1>{{ currentView === 'market' ? '风格市场' : '我的风格包' }}</h1>
         <p class="page-subtitle">
-          先把风格包做成内容浏览页，封面、版本、评价和投稿都收在同一条浏览路径里。
+          先把风格包做成内容浏览页，让封面、版本、评价和投稿都沿着同一条浏览路径展开。
         </p>
       </div>
-      <div class="hub-header-actions">
+      <div class="hero-actions">
         <el-button
           plain
           @click="$emit('go-related', currentView === 'market' ? 'my-styles' : 'style-market')"
@@ -20,35 +20,39 @@
           新建风格包
         </el-button>
       </div>
-    </div>
+    </header>
 
-    <section class="soft-panel hub-toolbar-panel clean-toolbar-panel">
-      <div class="filter-row responsive-filter-row compact-market-filters">
-        <el-input
-          v-model="keyword"
-          :prefix-icon="Search"
-          placeholder="搜索名称、描述或提示词模板"
-          clearable
-          class="page-search-input"
-        />
-        <el-select v-model="priceBand" clearable placeholder="价格区间" class="toolbar-select">
-          <el-option label="免费或低价" value="low" />
-          <el-option label="中等价位" value="mid" />
-          <el-option label="高价" value="high" />
-        </el-select>
-        <el-select v-model="localStatus" clearable placeholder="状态" class="toolbar-select">
-          <el-option label="草稿" value="DRAFT" />
-          <el-option label="已发布" value="PUBLISHED" />
-          <el-option label="已归档" value="ARCHIVED" />
-        </el-select>
-        <el-select v-model="sortMode" placeholder="排序" class="toolbar-select">
-          <el-option label="最新优先" value="latest" />
-          <el-option label="评分优先" value="rating" />
-          <el-option label="兑换量优先" value="access" />
-          <el-option label="价格优先" value="price" />
-        </el-select>
+    <section class="soft-panel market-toolbar-panel">
+      <div class="market-toolbar-grid style-toolbar-grid">
+        <div class="toolbar-search-slot">
+          <el-input
+            v-model="keyword"
+            :prefix-icon="Search"
+            placeholder="搜索名称、描述或提示词模板"
+            clearable
+            class="market-search-input"
+          />
+        </div>
+        <div class="toolbar-filter-slot">
+          <el-select v-model="priceBand" clearable placeholder="价格区间" class="toolbar-select">
+            <el-option label="免费或低价" value="low" />
+            <el-option label="中等价位" value="mid" />
+            <el-option label="高价" value="high" />
+          </el-select>
+          <el-select v-model="localStatus" clearable placeholder="状态" class="toolbar-select">
+            <el-option label="草稿" value="DRAFT" />
+            <el-option label="已发布" value="PUBLISHED" />
+            <el-option label="已归档" value="ARCHIVED" />
+          </el-select>
+          <el-select v-model="sortMode" placeholder="排序" class="toolbar-select">
+            <el-option label="最新优先" value="latest" />
+            <el-option label="评分优先" value="rating" />
+            <el-option label="兑换量优先" value="access" />
+            <el-option label="价格优先" value="price" />
+          </el-select>
+        </div>
       </div>
-      <div class="hub-summary-row compact-summary-row">
+      <div class="hub-summary-row market-summary-row">
         <div>
           <h2>{{ currentView === 'market' ? '浏览风格市场' : '管理你的风格资产' }}</h2>
           <p>{{ summaryText }}</p>
@@ -57,7 +61,7 @@
       </div>
     </section>
 
-    <section class="hub-card-grid style-plaza-grid clean-style-grid">
+    <section class="hub-card-grid style-plaza-grid clean-style-grid market-card-grid">
       <article
         v-for="pack in visiblePacks"
         :key="pack.id"
@@ -85,7 +89,7 @@
 
       <div v-if="!visiblePacks.length" class="detail-empty-state hub-empty-state">
         <strong>{{ currentView === 'market' ? '没有匹配的风格包' : '你还没有创建风格包' }}</strong>
-        <span>这里已经预留了搜索、筛选和详情扩展位，后面可以继续加更细的分类和后端查询。</span>
+        <span>这里已经给搜索、筛选和详情扩展留出了位置，后面可以继续补更细的分类和后端查询。</span>
       </div>
     </section>
 

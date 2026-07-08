@@ -51,7 +51,8 @@ button {
 
 .app-shell {
   min-height: 100vh;
-  padding: 18px;
+  width: 100%;
+  padding: 18px 18px 28px;
 }
 
 .topbar {
@@ -974,8 +975,10 @@ h2 {
 .tasks-view,
 .admin-view,
 .account-view {
+  width: min(1480px, 100%);
   min-height: calc(100vh - 124px);
-  padding: 22px;
+  margin: 0 auto;
+  padding: 24px 28px 28px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: rgba(255, 255, 255, 0.72);
@@ -1877,11 +1880,11 @@ h2 {
 .content-hub-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 
 .hub-toolbar-panel {
-  padding: 16px 18px;
+  padding: 18px 20px;
 }
 
 .hub-summary-row {
@@ -1901,6 +1904,84 @@ h2 {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.6;
+}
+
+.market-page-shell {
+  max-width: 100%;
+}
+
+.page-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: end;
+  padding: 4px 0 2px;
+}
+
+.hero-copy {
+  max-width: 760px;
+}
+
+.page-subtitle {
+  margin: 8px 0 0;
+  max-width: 760px;
+  color: #596761;
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.market-toolbar-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.market-toolbar-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 1.2fr) minmax(0, 1fr);
+  gap: 14px 16px;
+  align-items: start;
+}
+
+.toolbar-search-slot {
+  min-width: 0;
+}
+
+.toolbar-filter-slot {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.market-search-input,
+.toolbar-filter-slot .toolbar-select {
+  width: 100%;
+}
+
+.market-summary-row {
+  align-items: flex-end;
+}
+
+.market-summary-row > div {
+  min-width: 0;
+}
+
+.market-card-grid {
+  align-content: start;
+}
+
+.page-hero,
+.market-toolbar-panel,
+.market-card-grid {
+  width: 100%;
 }
 
 .hub-card-grid {
@@ -2556,6 +2637,19 @@ h2 {
 }
 
 @media (max-width: 1120px) {
+  .page-hero,
+  .market-toolbar-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-actions {
+    justify-content: flex-start;
+  }
+
+  .toolbar-filter-slot {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .topbar {
     grid-template-columns: 1fr;
     position: static;

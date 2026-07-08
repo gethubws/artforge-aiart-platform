@@ -1,14 +1,14 @@
 <template>
-  <section class="tasks-view content-hub-page">
-    <div class="page-heading hub-heading">
-      <div>
+  <section class="tasks-view content-hub-page market-page-shell">
+    <header class="page-hero hub-hero">
+      <div class="hero-copy">
         <p class="eyebrow">Task Hub</p>
         <h1>{{ currentView === 'market' ? '任务市场' : '我的任务' }}</h1>
         <p class="page-subtitle">
-          先看任务卡片，再按需打开详情、投稿、审核或编辑面板，让主页面保持清爽。
+          先浏览任务卡片，再按需打开详情、投稿、审核或编辑面板，让主页面保持干净的浏览节奏。
         </p>
       </div>
-      <div class="hub-header-actions">
+      <div class="hero-actions">
         <el-button
           plain
           @click="$emit('go-related', currentView === 'market' ? 'my-tasks' : 'task-market')"
@@ -20,35 +20,39 @@
           发布任务
         </el-button>
       </div>
-    </div>
+    </header>
 
-    <section class="soft-panel hub-toolbar-panel clean-toolbar-panel">
-      <div class="filter-row responsive-filter-row compact-market-filters">
-        <el-input
-          v-model="keyword"
-          :prefix-icon="Search"
-          placeholder="搜索任务标题、简介或要求"
-          clearable
-          class="page-search-input"
-        />
-        <el-select v-model="localStatus" clearable placeholder="状态" class="toolbar-select">
-          <el-option label="进行中" value="PUBLISHED" />
-          <el-option label="草稿" value="DRAFT" />
-          <el-option label="已关闭" value="CLOSED" />
-        </el-select>
-        <el-select v-model="taskTier" clearable placeholder="等级" class="toolbar-select">
-          <el-option label="高预算" value="premium" />
-          <el-option label="重点征集" value="featured" />
-          <el-option label="标准任务" value="standard" />
-        </el-select>
-        <el-select v-model="sortMode" placeholder="排序" class="toolbar-select">
-          <el-option label="最新优先" value="latest" />
-          <el-option label="预算优先" value="budget" />
-          <el-option label="投稿数优先" value="submissions" />
-          <el-option label="截止时间优先" value="deadline" />
-        </el-select>
+    <section class="soft-panel market-toolbar-panel">
+      <div class="market-toolbar-grid task-toolbar-grid">
+        <div class="toolbar-search-slot">
+          <el-input
+            v-model="keyword"
+            :prefix-icon="Search"
+            placeholder="搜索任务标题、简介或要求"
+            clearable
+            class="market-search-input"
+          />
+        </div>
+        <div class="toolbar-filter-slot">
+          <el-select v-model="localStatus" clearable placeholder="状态" class="toolbar-select">
+            <el-option label="进行中" value="PUBLISHED" />
+            <el-option label="草稿" value="DRAFT" />
+            <el-option label="已关闭" value="CLOSED" />
+          </el-select>
+          <el-select v-model="taskTier" clearable placeholder="等级" class="toolbar-select">
+            <el-option label="高预算" value="premium" />
+            <el-option label="重点征集" value="featured" />
+            <el-option label="标准任务" value="standard" />
+          </el-select>
+          <el-select v-model="sortMode" placeholder="排序" class="toolbar-select">
+            <el-option label="最新优先" value="latest" />
+            <el-option label="预算优先" value="budget" />
+            <el-option label="投稿数优先" value="submissions" />
+            <el-option label="截止时间优先" value="deadline" />
+          </el-select>
+        </div>
       </div>
-      <div class="hub-summary-row compact-summary-row">
+      <div class="hub-summary-row market-summary-row">
         <div>
           <h2>{{ currentView === 'market' ? '浏览任务广场' : '管理你的任务资产' }}</h2>
           <p>{{ summaryText }}</p>
@@ -57,7 +61,7 @@
       </div>
     </section>
 
-    <section class="hub-card-grid task-card-grid clean-task-grid">
+    <section class="hub-card-grid task-card-grid clean-task-grid market-card-grid">
       <article
         v-for="task in visibleTasks"
         :key="task.id"
@@ -82,7 +86,7 @@
 
       <div v-if="!visibleTasks.length" class="detail-empty-state hub-empty-state">
         <strong>{{ currentView === 'market' ? '没有匹配的任务' : '你还没有创建任务' }}</strong>
-        <span>这里已经为搜索、筛选和详情面板预留好了空间，后面可以继续补充分类和市场规则。</span>
+        <span>这里已经为搜索、筛选和详情面板预留好了位置，后面可以继续补充分类和市场规则。</span>
       </div>
     </section>
 

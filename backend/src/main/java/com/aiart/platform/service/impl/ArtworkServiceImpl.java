@@ -39,13 +39,14 @@ public class ArtworkServiceImpl implements ArtworkService {
     private final ContentAuditMapper contentAuditMapper;
 
     @Override
-    public List<ArtworkDtos.ArtworkCard> myArtworks(Long userId, int page, int size, List<Long> tagIds, String visibility, String status) {
+    public List<ArtworkDtos.ArtworkCard> myArtworks(Long userId, int page, int size, String keyword, List<Long> tagIds, String visibility, String status) {
         List<Long> artworkIds = artworkIdsForTags(tagIds);
         if (hasTagFilter(tagIds) && artworkIds.isEmpty()) {
             return List.of();
         }
         var query = Wrappers.<Artwork>lambdaQuery()
                 .eq(Artwork::getUserId, userId);
+        applyKeyword(query, keyword);
         if (hasTagFilter(tagIds)) {
             query.in(Artwork::getId, artworkIds);
         }
@@ -60,7 +61,7 @@ public class ArtworkServiceImpl implements ArtworkService {
     }
 
     @Override
-    public List<ArtworkDtos.ArtworkCard> publicArtworks(int page, int size, List<Long> tagIds) {
+    public List<ArtworkDtos.ArtworkCard> publicArtworks(int page, int size, String keyword, List<Long> tagIds) {
         List<Long> artworkIds = artworkIdsForTags(tagIds);
         if (hasTagFilter(tagIds) && artworkIds.isEmpty()) {
             return List.of();
@@ -68,6 +69,7 @@ public class ArtworkServiceImpl implements ArtworkService {
         var query = Wrappers.<Artwork>lambdaQuery()
                 .eq(Artwork::getVisibility, "PUBLIC")
                 .eq(Artwork::getStatus, "ACTIVE");
+        applyKeyword(query, keyword);
         if (hasTagFilter(tagIds)) {
             query.in(Artwork::getId, artworkIds);
         }
@@ -107,6 +109,12 @@ public class ArtworkServiceImpl implements ArtworkService {
         Artwork artwork = requireOwnedArtwork(userId, artworkId);
         if (StringUtils.hasText(request.title())) {
             artwork.setTitle(request.title().trim());
+        }
+        if (request.promptText() != null) {
+            artwork.setPromptText(request.promptText().trim());
+        }
+        if (request.negativePrompt() != null) {
+            artwork.setNegativePrompt(trimToNull(request.negativePrompt()));
         }
         if (StringUtils.hasText(request.visibility())) {
             String visibility = request.visibility().trim().toUpperCase();
@@ -154,7 +162,15 @@ public class ArtworkServiceImpl implements ArtworkService {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Unsupported visibility");
         }
         return normalizeArtworkIds(request.artworkIds()).stream()
-                .map(artworkId -> update(userId, artworkId, new ArtworkDtos.UpdateRequest(requireOwnedArtwork(userId, artworkId).getTitle(), visibility, null)))
+                .map(artworkId -> {
+                    Artwork artwork = requireOwnedArtwork(userId, artworkId);
+                    return update(userId, artworkId, new ArtworkDtos.UpdateRequest(
+                            artwork.getTitle(),
+                            artwork.getPromptText(),
+                            artwork.getNegativePrompt(),
+                            visibility,
+                            null));
+                })
                 .toList();
     }
 
@@ -194,6 +210,17 @@ public class ArtworkServiceImpl implements ArtworkService {
         long current = Math.max(1, page);
         long limit = Math.min(Math.max(1, size), 60);
         return new Page<>(current, limit);
+    }
+
+    private void applyKeyword(com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Artwork> query, String keyword) {
+        if (!StringUtils.hasText(keyword)) {
+            return;
+        }
+        String value = keyword.trim();
+        query.and(wrapper -> wrapper
+                .like(Artwork::getTitle, value)
+                .or()
+                .like(Artwork::getPromptText, value));
     }
 
     private Artwork requireOwnedArtwork(Long userId, Long artworkId) {
@@ -292,7 +319,7 @@ public class ArtworkServiceImpl implements ArtworkService {
                 continue;
             }
             result.computeIfAbsent(link.getArtworkId(), key -> new ArrayList<>())
-                    .add(new ArtworkDtos.TagSummary(tag.getId(), tag.getName(), categoryNames.get(tag.getCategoryId())));
+                    .add(new ArtworkDtos.TagSummary(tag.getId(), tag.getName(), tag.getDisplayNameZh(), categoryNames.get(tag.getCategoryId())));
         }
         return result;
     }
@@ -315,5 +342,9 @@ public class ArtworkServiceImpl implements ArtworkService {
 
     private boolean hasTagFilter(List<Long> tagIds) {
         return tagIds != null && !tagIds.isEmpty();
+    }
+
+    private String trimToNull(String value) {
+        return StringUtils.hasText(value) ? value.trim() : null;
     }
 }

@@ -8,7 +8,8 @@
         </div>
         <h1>把生成、整理、协作和运营收进同一个创作后台。</h1>
         <p>
-          登录后会直接进入平台主界面，在同一套工作流里管理 Forge 生图、作品沉淀、风格包分发和任务协作。
+          登录后会直接进入平台主界面，在同一套工作流里管理 Forge 生图、作品沉淀、
+          风格包分发和任务协作。
         </p>
       </div>
 
@@ -58,36 +59,69 @@
           <el-input v-model="authForm.displayName" autocomplete="name" placeholder="平台内展示名称" />
         </el-form-item>
         <el-form-item label="密码">
-          <el-input v-model="authForm.password" type="password" show-password autocomplete="current-password" placeholder="请输入密码" />
+          <el-input
+            v-model="authForm.password"
+            type="password"
+            show-password
+            autocomplete="current-password"
+            placeholder="请输入密码"
+          />
         </el-form-item>
         <el-button type="primary" :loading="auth.loading.value" :icon="Key" class="wide-button" @click="submitAuth">
           {{ authMode === 'login' ? '登录' : '创建账号' }}
         </el-button>
       </el-form>
 
-      <div class="auth-secondary">
-        <button class="auth-secondary-toggle" type="button" @click="adminPanelOpen = !adminPanelOpen">
-          <span>管理员初始化</span>
-          <span>{{ adminPanelOpen ? '收起' : '展开' }}</span>
-        </button>
-
-        <div v-if="adminPanelOpen" class="admin-bootstrap-box">
-          <p class="admin-bootstrap-hint">仅在首次部署、尚未存在管理员账号时使用。</p>
-          <el-form label-position="top" @submit.prevent>
-            <el-form-item label="管理员用户名">
-              <el-input v-model="adminBootstrapForm.username" placeholder="例如 admin" />
-            </el-form-item>
-            <el-form-item label="显示名称">
-              <el-input v-model="adminBootstrapForm.displayName" placeholder="例如 平台管理员" />
-            </el-form-item>
-            <el-form-item label="密码">
-              <el-input v-model="adminBootstrapForm.password" type="password" show-password placeholder="请输入管理员密码" />
-            </el-form-item>
-            <el-button class="wide-button" :loading="adminBootstrapLoading" @click="submitBootstrapAdmin">创建管理员</el-button>
-          </el-form>
+      <div class="auth-assist-row">
+        <div class="auth-assist-copy">
+          <strong>首次部署才需要管理员初始化</strong>
+          <span>和普通登录入口分开，避免和日常登录混在一起。</span>
         </div>
+        <el-button text @click="adminDialogVisible = true">管理员初始化</el-button>
       </div>
     </section>
+
+    <el-dialog
+      v-model="adminDialogVisible"
+      width="min(540px, 92vw)"
+      destroy-on-close
+      align-center
+      class="admin-bootstrap-dialog"
+    >
+      <template #header>
+        <div class="admin-bootstrap-head">
+          <p class="eyebrow">Admin Bootstrap</p>
+          <h2>初始化管理员账号</h2>
+          <p class="auth-card-subtitle">仅在首次部署、系统中尚未存在管理员账号时使用。</p>
+        </div>
+      </template>
+
+      <el-form label-position="top" @submit.prevent>
+        <el-form-item label="管理员用户名">
+          <el-input v-model="adminBootstrapForm.username" placeholder="例如 admin" />
+        </el-form-item>
+        <el-form-item label="显示名称">
+          <el-input v-model="adminBootstrapForm.displayName" placeholder="例如 平台管理员" />
+        </el-form-item>
+        <el-form-item label="密码">
+          <el-input
+            v-model="adminBootstrapForm.password"
+            type="password"
+            show-password
+            placeholder="请输入管理员密码"
+          />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <div class="dialog-footer-row">
+          <el-button @click="adminDialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="adminBootstrapLoading" @click="submitBootstrapAdmin">
+            创建管理员
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -102,8 +136,9 @@ import { useAuthStore } from '../stores/auth'
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
+
 const authMode = ref('login')
-const adminPanelOpen = ref(false)
+const adminDialogVisible = ref(false)
 const authOptions = [
   { label: '登录', value: 'login' },
   { label: '注册', value: 'register' }
@@ -142,7 +177,7 @@ const highlights = [
   }
 ]
 
-const goToApp = async () => {
+async function goToApp() {
   await auth.hydrateAuth()
   await router.push(redirectTarget.value)
   if (router.currentRoute.value.fullPath !== redirectTarget.value) {
@@ -150,7 +185,7 @@ const goToApp = async () => {
   }
 }
 
-const submitAuth = async () => {
+async function submitAuth() {
   try {
     if (!authForm.username.trim() || !authForm.password.trim()) {
       ElMessage.warning('请先填写用户名和密码')
@@ -184,7 +219,7 @@ const submitAuth = async () => {
   }
 }
 
-const submitBootstrapAdmin = async () => {
+async function submitBootstrapAdmin() {
   if (!adminBootstrapForm.username.trim() || !adminBootstrapForm.password.trim() || !adminBootstrapForm.displayName.trim()) {
     ElMessage.warning('请填写完整的管理员信息')
     return
@@ -197,6 +232,7 @@ const submitBootstrapAdmin = async () => {
       displayName: adminBootstrapForm.displayName.trim()
     })
     ElMessage.success('管理员已创建')
+    adminDialogVisible.value = false
     await router.replace('/app')
   } catch (error) {
     ElMessage.error(error.message)

@@ -16,7 +16,7 @@
           type="textarea"
           :autosize="{ minRows: 5, maxRows: 8 }"
           resize="none"
-          placeholder="输入你自己的描述、角色设定、场景叙事..."
+          placeholder="输入你自己的描述、角色设定、场景叙述..."
           @update:model-value="$emit('update:freeText', $event)"
         />
 
@@ -51,7 +51,7 @@
               type="button"
               @click="$emit('toggle-tag', tag.id)"
             >
-              {{ tag.name }}
+              <BilingualTagLabel :name="tag.name" :display-name-zh="tag.displayNameZh" />
             </button>
             <span v-if="!selectedTagObjects.length" class="selected-tag-empty">还没有选择标签</span>
           </div>
@@ -69,7 +69,7 @@
                 type="button"
                 @click="$emit('toggle-tag', tag.id)"
               >
-                {{ tag.name }}
+                <BilingualTagLabel :name="tag.name" :display-name-zh="tag.displayNameZh" />
               </button>
             </div>
           </div>
@@ -83,8 +83,8 @@
             <div v-else class="tag-preview-empty">暂无静态预览图</div>
           </div>
           <div class="tag-preview-meta">
-            <strong>{{ focusedTag.name }}</strong>
-            <p>{{ focusedTag.promptText }}</p>
+            <strong><BilingualTagLabel :name="focusedTag.name" :display-name-zh="focusedTag.displayNameZh" /></strong>
+            <p>{{ focusedTag.descriptionZh || focusedTag.promptText }}</p>
             <span v-if="focusedTag.negativePromptText">负面词: {{ focusedTag.negativePromptText }}</span>
           </div>
         </div>
@@ -103,6 +103,7 @@
 <script setup>
 import { computed } from 'vue'
 import { MagicStick } from '@element-plus/icons-vue'
+import BilingualTagLabel from './BilingualTagLabel.vue'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },

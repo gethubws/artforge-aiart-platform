@@ -17,9 +17,9 @@ public interface StylePackageService {
 
     StylePackageDtos.Detail detail(Long viewerId, Long packageId);
 
-    List<StylePackageDtos.Card> myPackages(Long userId, int page, int size);
+    List<StylePackageDtos.Card> myPackages(Long userId, StylePackageDtos.ListQuery query, int page, int size);
 
-    List<StylePackageDtos.Card> marketPackages(Long viewerId, int page, int size);
+    List<StylePackageDtos.Card> marketPackages(Long viewerId, StylePackageDtos.ListQuery query, int page, int size);
 
     List<StylePackageDtos.VersionView> versions(Long viewerId, Long packageId, int page, int size);
 

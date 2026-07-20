@@ -29,20 +29,30 @@ public class ArtworkController {
     public ApiResponse<List<ArtworkDtos.ArtworkCard>> my(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long tagId,
             @RequestParam(required = false) String tagIds,
             @RequestParam(required = false) String visibility,
             @RequestParam(required = false) String status) {
-        return ApiResponse.ok(artworkService.myArtworks(currentUser.requireUserId(), page, size, parseTagIds(tagId, tagIds), visibility, status));
+        return ApiResponse.ok(artworkService.myArtworks(
+                currentUser.requireUserId(),
+                page,
+                size,
+                keyword,
+                parseTagIds(tagId, tagIds),
+                visibility,
+                status
+        ));
     }
 
     @GetMapping("/public")
     public ApiResponse<List<ArtworkDtos.ArtworkCard>> publicArtworks(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long tagId,
             @RequestParam(required = false) String tagIds) {
-        return ApiResponse.ok(artworkService.publicArtworks(page, size, parseTagIds(tagId, tagIds)));
+        return ApiResponse.ok(artworkService.publicArtworks(page, size, keyword, parseTagIds(tagId, tagIds)));
     }
 
     @PostMapping("/{artworkId}/request-publish")

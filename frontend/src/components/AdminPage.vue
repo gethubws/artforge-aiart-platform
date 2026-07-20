@@ -35,7 +35,7 @@
             <span v-for="item in adminDashboard.dailyGenerations" :key="item.date">
               <i :style="{ height: `${Math.max(8, Math.min(72, item.count * 12))}px` }"></i>
               <b>{{ item.count }}</b>
-              <em>{{ formatDate(item.date) }}</em>
+              <em>{{ formatDay(item.date) }}</em>
             </span>
           </div>
         </article>
@@ -46,7 +46,7 @@
             <span v-for="item in adminDashboard.dailyArtworks" :key="item.date">
               <i :style="{ height: `${Math.max(8, Math.min(72, item.count * 12))}px` }"></i>
               <b>{{ item.count }}</b>
-              <em>{{ formatDate(item.date) }}</em>
+              <em>{{ formatDay(item.date) }}</em>
             </span>
           </div>
         </article>
@@ -97,7 +97,9 @@
               <el-option v-for="category in adminTagTree" :key="category.id" :label="category.name" :value="category.id" />
             </el-select>
           </el-form-item>
-          <el-form-item label="标签名称"><el-input v-model="tagForm.name" placeholder="柔和逆光" /></el-form-item>
+          <el-form-item label="英文标签名"><el-input v-model="tagForm.name" placeholder="cinematic / rim light / close-up" /></el-form-item>
+          <el-form-item label="中文显示名"><el-input v-model="tagForm.displayNameZh" placeholder="电影感 / 轮廓光 / 近景" /></el-form-item>
+          <el-form-item label="中文说明"><el-input v-model="tagForm.descriptionZh" type="textarea" :autosize="{ minRows: 2, maxRows: 4 }" resize="none" /></el-form-item>
           <el-form-item label="正向提示词"><el-input v-model="tagForm.promptText" type="textarea" :autosize="{ minRows: 3, maxRows: 5 }" resize="none" /></el-form-item>
           <el-form-item label="反向提示词"><el-input v-model="tagForm.negativePromptText" type="textarea" :autosize="{ minRows: 2, maxRows: 4 }" resize="none" /></el-form-item>
           <el-form-item label="预览图 URL"><el-input v-model="tagForm.previewImageUrl" placeholder="https://... 或 /images/tags/..." /></el-form-item>
@@ -119,7 +121,8 @@
             <div class="admin-tag-group-head"><strong>{{ category.name }}</strong><span>{{ category.slug }}</span></div>
             <article v-for="tag in category.tags" :key="tag.id" class="admin-tag-row">
               <div class="admin-tag-copy">
-                <strong>{{ tag.name }}</strong>
+                <strong><BilingualTagLabel :name="tag.name" :display-name-zh="tag.displayNameZh" /></strong>
+                <span v-if="tag.descriptionZh">{{ tag.descriptionZh }}</span>
                 <span>{{ tag.promptText }}</span>
                 <div v-if="tag.previewImageUrl" class="mini-preview-chip">含预览图</div>
               </div>
@@ -172,6 +175,7 @@
 
 <script setup>
 import { Refresh } from '@element-plus/icons-vue'
+import BilingualTagLabel from './BilingualTagLabel.vue'
 
 defineProps({
   auditLoading: { type: Boolean, default: false },
@@ -201,4 +205,10 @@ defineEmits([
   'disable-tag-item',
   'review-content-audit'
 ])
+
+function formatDay(value) {
+  if (!value) return '-'
+  const parts = String(value).split('-')
+  return parts.length === 3 ? `${parts[1]}/${parts[2]}` : String(value)
+}
 </script>

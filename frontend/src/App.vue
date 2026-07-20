@@ -1,12 +1,14 @@
-<template>
+﻿<template>
   <div class="app-shell">
     <AppTopbar
       :active-view="activeView"
       :current-user="currentUser"
+      :unread-notification-count="unreadNotificationCount"
       @navigate="activateView"
       @refresh-provider="loadProvider"
       @refresh-artworks="refreshContent"
       @logout="logout"
+      @open-notifications="openNotificationsCenter"
     />
 
     <main class="app-main">
@@ -79,23 +81,17 @@
 
       <LibraryPage
         v-else-if="activeView === 'library'"
-        :library-keyword="libraryKeyword"
-        :library-tag-filter="libraryTagFilter"
-        :library-visibility-filter="libraryVisibilityFilter"
-        :library-status-filter="libraryStatusFilter"
+        :query-state="libraryQuery"
         :selectable-tags="flatTags"
         :selected-artwork-count="selectedArtworkIds.size"
         :all-filtered-artworks-selected="allFilteredArtworksSelected"
         :library-batch-loading="libraryBatchLoading"
-        :filtered-artworks="filteredArtworks"
+        :artworks="myArtworks"
         :is-artwork-selected="isArtworkSelected"
         :format-date="formatDate"
         :status-label="statusLabel"
-        @update:library-keyword="libraryKeyword = $event"
-        @update:library-tag-filter="libraryTagFilter = $event"
-        @update:library-visibility-filter="libraryVisibilityFilter = $event"
-        @update:library-status-filter="libraryStatusFilter = $event"
-        @refresh="loadMyArtworks"
+        :is-favorite-target="isFavoriteTarget"
+        @refresh="loadMyArtworks($event)"
         @toggle-all-filtered="toggleAllFiltered"
         @clear-selection="clearArtworkSelection"
         @publish-selected="publishSelected"
@@ -104,32 +100,43 @@
         @open-detail="openArtworkDetail"
         @toggle-selection="toggleArtworkSelection"
         @request-publish="requestPublish"
+        @toggle-favorite-target="toggleFavoriteTarget"
       />
 
       <CommunityPage
         v-else-if="activeView === 'community'"
-        :community-tag-filter="communityTagFilter"
+        :query-state="communityQuery"
         :selectable-tags="flatTags"
-        :public-artworks="filteredPublicArtworks"
+        :public-artworks="publicArtworks"
         :format-date="formatDate"
-        @update:community-tag-filter="communityTagFilter = $event"
-        @refresh="loadCommunity"
+        :is-favorite-target="isFavoriteTarget"
+        @refresh="loadCommunity($event)"
         @open-detail="openArtworkDetail"
+        @toggle-favorite-target="toggleFavoriteTarget"
       />
 
       <StyleMarketPage
         v-else-if="activeView === 'style-market'"
         :style-form="styleForm"
         :style-loading="styleLoading"
+        :all-tags="flatTags"
+        :owned-artworks="myArtworks"
+        :query-state="styleMarketQuery"
         :market-style-packages="marketStylePackages"
+        :my-style-package-submissions="myStylePackageSubmissions"
         :style-package-versions="stylePackageVersions"
         :style-package-reviews="stylePackageReviews"
         :active-style-package-name="activeStylePackageName"
+        :style-submission-form="styleSubmissionForm"
         :style-review-form="styleReviewForm"
         :style-stats-items="styleStatsItems"
         :format-date="formatDate"
         :status-label="statusLabel"
-        @refresh="loadStylePackages"
+        :is-favorite-target="isFavoriteTarget"
+        :is-subscribed-target="isSubscribedTarget"
+        :focus-target-id="engagementFocus.targetType === 'STYLE_PACKAGE' ? engagementFocus.targetId : null"
+        :focus-target-stamp="engagementFocus.stamp"
+        @refresh="loadStylePackages({ scope: 'market', query: $event })"
         @reset-form="resetStyleForm"
         @patch-style-form="patchStyleForm"
         @save="saveStylePackage"
@@ -142,28 +149,41 @@
         @load-artworks="loadStyleArtworks"
         @exchange-pack="exchangeStylePackageItem"
         @prepare-submission="prepareStyleSubmission"
+        @patch-submission-form="patchStyleSubmissionForm"
+        @submit-submission="submitStyleSubmission"
         @prepare-review="prepareStyleReview"
         @load-reviews="loadStyleReviews"
         @patch-review-form="patchStyleReviewForm"
         @submit-review="submitStyleReview"
         @review-submission="reviewStyleSubmissionItem"
         @go-related="activateView"
+        @toggle-favorite-target="toggleFavoriteTarget"
+        @toggle-subscription-target="toggleSubscriptionTarget"
       />
 
       <MyStylePackagesPage
         v-else-if="activeView === 'my-styles'"
         :style-form="styleForm"
         :style-loading="styleLoading"
+        :all-tags="flatTags"
+        :owned-artworks="myArtworks"
+        :query-state="myStyleQuery"
         :my-style-packages="myStylePackages"
+        :my-style-package-submissions="myStylePackageSubmissions"
         :style-package-versions="stylePackageVersions"
         :style-package-reviews="stylePackageReviews"
         :style-submissions="styleSubmissions"
         :active-style-package-name="activeStylePackageName"
+        :style-submission-form="styleSubmissionForm"
         :style-review-form="styleReviewForm"
         :style-stats-items="styleStatsItems"
         :format-date="formatDate"
         :status-label="statusLabel"
-        @refresh="loadStylePackages"
+        :is-favorite-target="isFavoriteTarget"
+        :is-subscribed-target="isSubscribedTarget"
+        :focus-target-id="engagementFocus.targetType === 'STYLE_PACKAGE' ? engagementFocus.targetId : null"
+        :focus-target-stamp="engagementFocus.stamp"
+        @refresh="loadStylePackages({ scope: 'my', query: $event })"
         @reset-form="resetStyleForm"
         @patch-style-form="patchStyleForm"
         @save="saveStylePackage"
@@ -176,12 +196,16 @@
         @load-artworks="loadStyleArtworks"
         @exchange-pack="exchangeStylePackageItem"
         @prepare-submission="prepareStyleSubmission"
+        @patch-submission-form="patchStyleSubmissionForm"
+        @submit-submission="submitStyleSubmission"
         @prepare-review="prepareStyleReview"
         @load-reviews="loadStyleReviews"
         @patch-review-form="patchStyleReviewForm"
         @submit-review="submitStyleReview"
         @review-submission="reviewStyleSubmissionItem"
         @go-related="activateView"
+        @toggle-favorite-target="toggleFavoriteTarget"
+        @toggle-subscription-target="toggleSubscriptionTarget"
       />
 
       <TaskMarketPage
@@ -189,7 +213,7 @@
         :task-loading="taskLoading"
         :task-form="taskForm"
         :task-market="taskMarket"
-        :task-market-status-filter="taskMarketStatusFilter"
+        :query-state="taskMarketQuery"
         :submission-form="submissionForm"
         :my-artworks="myArtworks"
         :current-user="currentUser"
@@ -199,15 +223,17 @@
         :format-points="formatPoints"
         :format-deadline="formatDeadline"
         :status-label="statusLabel"
-        @refresh="loadTasks"
+        :is-favorite-target="isFavoriteTarget"
+        :is-subscribed-target="isSubscribedTarget"
+        :focus-target-id="engagementFocus.targetType === 'TASK' ? engagementFocus.targetId : null"
+        :focus-target-stamp="engagementFocus.stamp"
+        @refresh="loadTasks({ scope: 'market', query: $event })"
         @reset-task-form="resetTaskForm"
         @patch-task-form="patchTaskForm"
         @save-task="saveTask"
-        @update:taskMarketStatusFilter="taskMarketStatusFilter = $event"
         @prepare-submission="prepareTaskSubmission"
         @patch-submission-form="patchSubmissionForm"
         @submit-task-work="submitTaskWork"
-        @update:myTaskStatusFilter="myTaskStatusFilter = $event"
         @edit-task="editTask"
         @publish-task-item="publishTaskItem"
         @close-task-item="closeTaskItem"
@@ -216,33 +242,36 @@
         @review-submission="reviewTaskSubmissionItem"
         @patch-task-review-form="patchTaskReviewForm"
         @go-related="activateView"
+        @toggle-favorite-target="toggleFavoriteTarget"
+        @toggle-subscription-target="toggleSubscriptionTarget"
       />
 
       <MyTasksPage
         v-else-if="activeView === 'my-tasks'"
         :task-loading="taskLoading"
         :task-form="taskForm"
-        :task-market-status-filter="taskMarketStatusFilter"
+        :query-state="myTaskQuery"
         :submission-form="submissionForm"
         :my-artworks="myArtworks"
         :current-user="currentUser"
         :my-task-submissions="myTaskSubmissions"
         :my-tasks="myTasks"
-        :my-task-status-filter="myTaskStatusFilter"
         :selected-task-submissions="selectedTaskSubmissions"
         :task-review-form="taskReviewForm"
         :format-points="formatPoints"
         :format-deadline="formatDeadline"
         :status-label="statusLabel"
-        @refresh="loadTasks"
+        :is-favorite-target="isFavoriteTarget"
+        :is-subscribed-target="isSubscribedTarget"
+        :focus-target-id="engagementFocus.targetType === 'TASK' ? engagementFocus.targetId : null"
+        :focus-target-stamp="engagementFocus.stamp"
+        @refresh="loadTasks({ scope: 'my', query: $event })"
         @reset-task-form="resetTaskForm"
         @patch-task-form="patchTaskForm"
         @save-task="saveTask"
-        @update:taskMarketStatusFilter="taskMarketStatusFilter = $event"
         @prepare-submission="prepareTaskSubmission"
         @patch-submission-form="patchSubmissionForm"
         @submit-task-work="submitTaskWork"
-        @update:myTaskStatusFilter="myTaskStatusFilter = $event"
         @edit-task="editTask"
         @publish-task-item="publishTaskItem"
         @close-task-item="closeTaskItem"
@@ -251,6 +280,8 @@
         @review-submission="reviewTaskSubmissionItem"
         @patch-task-review-form="patchTaskReviewForm"
         @go-related="activateView"
+        @toggle-favorite-target="toggleFavoriteTarget"
+        @toggle-subscription-target="toggleSubscriptionTarget"
       />
 
       <ModelsPage
@@ -316,9 +347,25 @@
         :format-points="formatPoints"
         :format-signed-points="formatSignedPoints"
         :point-reason-label="pointReasonLabel"
+        :format-date="formatDate"
+        :status-label="statusLabel"
+        :my-task-submissions="myTaskSubmissions"
+        :my-style-package-submissions="myStylePackageSubmissions"
+        :my-tasks="myTasks"
+        :my-style-packages="myStylePackages"
+        :notifications="notifications"
+        :unread-notification-count="unreadNotificationCount"
+        :favorite-items="favoriteItems"
+        :subscription-items="subscriptionItems"
         @claim-daily-points="claimDaily"
         @refresh-points="loadPointAccount"
         @logout="logout"
+        @go-view="activateView"
+        @mark-notification-read="markNotificationReadItem"
+        @mark-all-notifications-read="markAllNotificationsReadItems"
+        @open-target="openEngagementTarget"
+        @toggle-favorite="toggleFavoriteTarget"
+        @toggle-subscription="toggleSubscriptionTarget"
       />
     </main>
 
@@ -366,10 +413,31 @@
                 <el-input v-model="artworkDetail.promptText" type="textarea" :autosize="{ minRows: 3, maxRows: 6 }" resize="none" />
               </el-form-item>
               <el-form-item label="反向 Prompt">
-                <el-input v-model="artworkDetail.negativePromptText" type="textarea" :autosize="{ minRows: 2, maxRows: 4 }" resize="none" />
+                <el-input v-model="artworkDetail.negativePrompt" type="textarea" :autosize="{ minRows: 2, maxRows: 4 }" resize="none" />
+              </el-form-item>
+              <el-form-item label="作品标签">
+                <el-select
+                  v-model="artworkDetailTagIds"
+                  multiple
+                  filterable
+                  clearable
+                  collapse-tags
+                  collapse-tags-tooltip
+                  placeholder="选择作品标签"
+                >
+                  <el-option
+                    v-for="tag in flatTags"
+                    :key="tag.id"
+                    :label="tag.displayNameZh ? `${tag.displayNameZh} / ${tag.name}` : tag.name"
+                    :value="tag.id"
+                  />
+                </el-select>
               </el-form-item>
             </el-form>
             <div class="detail-actions">
+              <el-button @click="toggleFavoriteTarget({ type: 'ARTWORK', target: artworkDetail })">
+                {{ isFavoriteTarget('ARTWORK', artworkDetail) ? '取消收藏' : '收藏作品' }}
+              </el-button>
               <el-button @click="reuseArtworkPrompt">复用到工作台</el-button>
               <el-button @click="archiveArtworkDetail">归档</el-button>
               <el-button type="primary" @click="saveArtworkDetail">保存修改</el-button>
@@ -428,18 +496,22 @@ import {
   exchangeStylePackage,
   getMarketStylePackages,
   getMyStylePackages,
+  getMyStylePackageSubmissions,
   getStylePackageArtworks,
+  getStylePackageDetail,
   getStylePackageReviews,
   getStylePackageSubmissions,
   getStylePackageVersions,
   publishStylePackage,
   reviewStylePackageSubmission,
   saveStylePackageReview,
+  submitStylePackageArtwork,
   updateStylePackage
 } from './api/stylePackages'
 import {
   closeTask,
   createTask,
+  getTaskDetail,
   getMyTaskSubmissions,
   getMyTasks,
   getTaskMarket,
@@ -452,6 +524,15 @@ import {
 import { claimDailyPoints, getPointAccount } from './api/points'
 import { getAdminDashboard } from './api/admin'
 import { getMyAudits, getPendingAudits, reviewAudit } from './api/audits'
+import {
+  getFavoriteTargets,
+  getNotifications,
+  getSubscriptionTargets,
+  markAllNotificationsRead,
+  markNotificationRead,
+  toggleFavoriteTarget as toggleFavoriteTargetApi,
+  toggleSubscriptionTarget as toggleSubscriptionTargetApi
+} from './api/engagement'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -462,6 +543,7 @@ const promptBuilderVisible = ref(false)
 const previewVisible = ref(false)
 const detailVisible = ref(false)
 const artworkDetail = ref(null)
+const artworkDetailTagIds = ref([])
 
 const generationMode = ref('txt2img')
 const freeText = ref('')
@@ -519,11 +601,8 @@ const generationForm = reactive({
   hrSecondPassSteps: 12
 })
 
-const libraryKeyword = ref('')
-const libraryTagFilter = ref([])
-const libraryVisibilityFilter = ref('')
-const libraryStatusFilter = ref('')
-const communityTagFilter = ref([])
+const libraryQuery = reactive({ keyword: '', tagIds: [], visibility: '', status: '', page: 1, size: 12, hasNext: false })
+const communityQuery = reactive({ keyword: '', tagIds: [], page: 1, size: 12, hasNext: false })
 const myArtworks = ref([])
 const publicArtworks = ref([])
 const selectedArtworkIds = ref(new Set())
@@ -532,18 +611,29 @@ const libraryBatchLoading = ref(false)
 const styleLoading = ref(false)
 const myStylePackages = ref([])
 const marketStylePackages = ref([])
+const styleMarketQuery = reactive({ keyword: '', tagId: null, status: '', sort: 'latest', page: 1, size: 8, hasNext: false })
+const myStyleQuery = reactive({ keyword: '', tagId: null, status: '', sort: 'latest', page: 1, size: 8, hasNext: false })
 const stylePackageVersions = ref([])
 const stylePackageReviews = ref([])
 const styleSubmissions = ref([])
+const myStylePackageSubmissions = ref([])
 const activeStylePackageName = ref('')
 const styleForm = reactive({
   id: null,
   name: '',
   coverImageUrl: '',
   description: '',
-  promptTemplate: '',
-  negativePromptTemplate: '',
+  styleStatement: '',
+  promptGuide: '',
+  negativePromptGuide: '',
+  featuredArtworkId: null,
+  tagNames: [],
+  collaborators: [],
   pricePoints: 0
+})
+const styleSubmissionForm = reactive({
+  artworkId: null,
+  note: ''
 })
 const styleReviewForm = reactive({
   rating: 5,
@@ -557,8 +647,8 @@ const taskMarket = ref([])
 const myTasks = ref([])
 const myTaskSubmissions = ref([])
 const selectedTaskSubmissions = ref([])
-const taskMarketStatusFilter = ref('PUBLISHED')
-const myTaskStatusFilter = ref('')
+const taskMarketQuery = reactive({ keyword: '', status: 'PUBLISHED', tier: '', sort: 'latest', page: 1, size: 9, hasNext: false })
+const myTaskQuery = reactive({ keyword: '', status: '', tier: '', sort: 'latest', page: 1, size: 9, hasNext: false })
 const taskForm = reactive({
   id: null,
   title: '',
@@ -581,6 +671,12 @@ const taskReviewForm = reactive({
 const pointLoading = ref(false)
 const pointAccount = ref({ balance: 0, frozenBalance: 0, transactions: [] })
 
+const notifications = ref([])
+const unreadNotificationCount = ref(0)
+const favoriteItems = ref([])
+const subscriptionItems = ref([])
+const engagementFocus = reactive({ targetType: '', targetId: null, stamp: 0 })
+
 const modelResourceKeyword = ref('')
 const favoriteResources = ref([])
 const favoriteResourceMap = ref({})
@@ -598,6 +694,8 @@ const tagForm = reactive({
   id: null,
   categoryId: null,
   name: '',
+  displayNameZh: '',
+  descriptionZh: '',
   promptText: '',
   negativePromptText: '',
   previewImageUrl: '',
@@ -613,37 +711,71 @@ const userInitial = computed(() => {
 const flatTags = computed(() => tagTree.value.flatMap((category) => category.tags || []))
 const previewImage = computed(() => artworkDetail.value?.imageUrl || myArtworks.value[0]?.imageUrl || '')
 
-const filteredArtworks = computed(() => {
-  return myArtworks.value.filter((artwork) => {
-    const keyword = libraryKeyword.value.trim().toLowerCase()
-    const keywordHit = !keyword || `${artwork.title || ''} ${artwork.promptText || ''}`.toLowerCase().includes(keyword)
-    const tagsHit = !libraryTagFilter.value.length || libraryTagFilter.value.every((id) => (artwork.tags || []).some((tag) => tag.id === id))
-    const visibilityHit = !libraryVisibilityFilter.value || artwork.visibility === libraryVisibilityFilter.value
-    const statusHit = !libraryStatusFilter.value || artwork.status === libraryStatusFilter.value
-    return keywordHit && tagsHit && visibilityHit && statusHit
-  })
-})
-
-const filteredPublicArtworks = computed(() => {
-  return publicArtworks.value.filter((artwork) => {
-    return !communityTagFilter.value.length || communityTagFilter.value.every((id) => (artwork.tags || []).some((tag) => tag.id === id))
-  })
-})
-
 const allFilteredArtworksSelected = computed(() => {
-  if (!filteredArtworks.value.length) return false
-  return filteredArtworks.value.every((artwork) => selectedArtworkIds.value.has(artwork.id))
+  if (!myArtworks.value.length) return false
+  return myArtworks.value.every((artwork) => selectedArtworkIds.value.has(artwork.id))
 })
 
 const filteredModels = computed(() => filterResources(models.value))
 const filteredLoras = computed(() => filterResources(loras.value))
 const filteredVaes = computed(() => filterResources(vaes.value))
 const filteredUpscalers = computed(() => filterResources(upscalers.value))
+const favoriteTargetKeys = computed(() => new Set((favoriteItems.value || []).map((item) => targetKey(item.targetType, item.targetId))))
+const subscriptionTargetKeys = computed(() => new Set((subscriptionItems.value || []).map((item) => targetKey(item.targetType, item.targetId))))
 
 function filterResources(list) {
   const keyword = modelResourceKeyword.value.trim().toLowerCase()
   if (!keyword) return list
   return list.filter((item) => resourceName(item).toLowerCase().includes(keyword))
+}
+
+function targetKey(type, targetId) {
+  return `${String(type || '').toUpperCase()}:${targetId}`
+}
+
+function resolveTargetId(target) {
+  return target?.targetId || target?.id || target?.artworkId || target?.relatedId || null
+}
+
+function upsertById(list, item) {
+  if (!item?.id) return list
+  const index = list.findIndex((entry) => entry.id === item.id)
+  if (index === -1) {
+    return [item, ...list]
+  }
+  const next = [...list]
+  next[index] = { ...next[index], ...item }
+  return next
+}
+
+function injectTaskTarget(target, view) {
+  if (!target?.id) return
+  if (view === 'my-tasks') {
+    myTasks.value = upsertById(myTasks.value, target)
+    return
+  }
+  taskMarket.value = upsertById(taskMarket.value, target)
+}
+
+function injectStyleTarget(target, view) {
+  if (!target?.id) return
+  if (view === 'my-styles') {
+    myStylePackages.value = upsertById(myStylePackages.value, target)
+    return
+  }
+  marketStylePackages.value = upsertById(marketStylePackages.value, target)
+}
+
+function isFavoriteTarget(type, target) {
+  const targetId = resolveTargetId(target)
+  if (!targetId) return false
+  return favoriteTargetKeys.value.has(targetKey(type, targetId))
+}
+
+function isSubscribedTarget(type, target) {
+  const targetId = resolveTargetId(target)
+  if (!targetId) return false
+  return subscriptionTargetKeys.value.has(targetKey(type, targetId))
 }
 
 function activateView(view) {
@@ -654,12 +786,54 @@ function activateView(view) {
   activeView.value = view
 }
 
+function focusEngagementTarget(type, targetId) {
+  engagementFocus.targetType = String(type || '').toUpperCase()
+  engagementFocus.targetId = targetId || null
+  engagementFocus.stamp += 1
+}
+
+function prepareEngagementView(view) {
+  if (view === 'task-market') {
+    Object.assign(taskMarketQuery, { keyword: '', status: 'PUBLISHED', tier: '', sort: 'latest', page: 1 })
+  } else if (view === 'my-tasks') {
+    Object.assign(myTaskQuery, { keyword: '', status: '', tier: '', sort: 'latest', page: 1 })
+  } else if (view === 'style-market') {
+    Object.assign(styleMarketQuery, { keyword: '', tagId: null, status: '', sort: 'latest', page: 1 })
+  } else if (view === 'my-styles') {
+    Object.assign(myStyleQuery, { keyword: '', tagId: null, status: '', sort: 'latest', page: 1 })
+  } else if (view === 'community') {
+    Object.assign(communityQuery, { keyword: '', tagIds: [], page: 1 })
+  } else if (view === 'library') {
+    Object.assign(libraryQuery, { keyword: '', tagIds: [], visibility: '', status: '', page: 1 })
+  }
+}
+
+async function loadViewForEngagement(view) {
+  if (view === 'task-market') {
+    await loadTasks({ scope: 'market', query: taskMarketQuery })
+  } else if (view === 'my-tasks') {
+    await loadTasks({ scope: 'my', query: myTaskQuery })
+  } else if (view === 'style-market') {
+    await loadStylePackages({ scope: 'market', query: styleMarketQuery })
+  } else if (view === 'my-styles') {
+    await loadStylePackages({ scope: 'my', query: myStyleQuery })
+  } else if (view === 'community') {
+    await loadCommunity(communityQuery)
+  } else if (view === 'library') {
+    await loadMyArtworks(libraryQuery)
+  }
+}
+
 function patchGenerationForm(patch) {
   Object.assign(generationForm, patch)
 }
 
 function patchStyleForm(patch) {
   Object.assign(styleForm, patch)
+}
+
+function patchStyleSubmissionForm(patch) {
+  Object.assign(styleSubmissionForm, patch)
 }
 
 function patchTaskForm(patch) {
@@ -703,10 +877,10 @@ async function composePrompt() {
     const result = await buildPrompt({
       freeText: freeText.value,
       negativeText: negativeText.value,
-      selectedTagIds: selectedTags.value
+      tagIds: selectedTags.value
     })
-    composedPrompt.value = result.promptText || ''
-    composedNegative.value = result.negativePromptText || ''
+    composedPrompt.value = result.prompt || ''
+    composedNegative.value = result.negativePrompt || ''
   } catch {
     composedPrompt.value = [freeText.value, ...selectedTagObjects().map((tag) => tag.promptText).filter(Boolean)].filter(Boolean).join(', ')
     composedNegative.value = [negativeText.value, ...selectedTagObjects().map((tag) => tag.negativePromptText).filter(Boolean)].filter(Boolean).join(', ')
@@ -726,11 +900,26 @@ function toggleTag(tagId) {
   composePrompt()
 }
 
+function parseSettingsDraft(text, label) {
+  if (!text?.trim()) return undefined
+  try {
+    const value = JSON.parse(text)
+    if (!value || Array.isArray(value) || typeof value !== 'object') {
+      throw new Error()
+    }
+    return value
+  } catch {
+    throw new Error(`${label} 必须是合法的 JSON 对象`)
+  }
+}
+
 function buildGenerationPayload() {
   const payload = {
     title: generationForm.title || `作品 ${new Date().toLocaleString('zh-CN')}`,
     prompt: composedPrompt.value || freeText.value,
     negativePrompt: composedNegative.value || negativeText.value,
+    freeText: freeText.value,
+    negativeText: negativeText.value,
     model: generationForm.model || undefined,
     vae: generationForm.vae || undefined,
     samplerName: generationForm.samplerName,
@@ -750,12 +939,12 @@ function buildGenerationPayload() {
     hrScale: generationForm.hrScale,
     hrSecondPassSteps: generationForm.hrSecondPassSteps,
     loras: selectedLoras.value.map((name) => ({ name, weight: loraWeight.value })),
-    overrideSettingsJson: overrideSettingsJson.value || undefined,
-    extraPayloadJson: extraPayloadJson.value || undefined,
-    selectedTagIds: selectedTags.value
+    overrideSettings: parseSettingsDraft(overrideSettingsJson.value, 'Override Settings'),
+    extraPayload: parseSettingsDraft(extraPayloadJson.value, 'Extra Payload'),
+    tagIds: [...selectedTags.value]
   }
   if (generationMode.value === 'img2img' && initImageBase64.value) {
-    payload.initImageBase64 = initImageBase64.value
+    payload.initImages = [initImageBase64.value]
   }
   return payload
 }
@@ -816,22 +1005,52 @@ async function cancelTrackedJob(item) {
   }
 }
 
+function settingsDraft(value) {
+  if (!value || Array.isArray(value) || typeof value !== 'object') return ''
+  return JSON.stringify(value, null, 2)
+}
+
+function applyGenerationContext(params = {}, fallbackTagIds = []) {
+  generationForm.title = params.title || generationForm.title
+  generationForm.model = params.model || generationForm.model
+  generationForm.vae = params.vae || generationForm.vae
+  generationForm.samplerName = params.samplerName || generationForm.samplerName
+  generationForm.width = params.width || generationForm.width
+  generationForm.height = params.height || generationForm.height
+  generationForm.steps = params.steps || generationForm.steps
+  generationForm.cfgScale = params.cfgScale || generationForm.cfgScale
+  generationForm.seed = params.seed ?? generationForm.seed
+  generationForm.clipSkip = params.clipSkip || generationForm.clipSkip
+  generationForm.batchSize = params.batchSize || generationForm.batchSize
+  generationForm.batchCount = params.batchCount || generationForm.batchCount
+  generationForm.restoreFaces = Boolean(params.restoreFaces)
+  generationForm.tiling = Boolean(params.tiling)
+  generationForm.enableHr = Boolean(params.enableHr)
+  generationForm.hrUpscaler = params.hrUpscaler || generationForm.hrUpscaler
+  generationForm.denoisingStrength = params.denoisingStrength ?? generationForm.denoisingStrength
+  generationForm.hrScale = params.hrScale ?? generationForm.hrScale
+  generationForm.hrSecondPassSteps = params.hrSecondPassSteps ?? generationForm.hrSecondPassSteps
+
+  freeText.value = params.freeText ?? params.prompt ?? freeText.value
+  negativeText.value = params.negativeText ?? params.negativePrompt ?? negativeText.value
+  composedPrompt.value = params.prompt || freeText.value
+  composedNegative.value = params.negativePrompt || negativeText.value
+  selectedTags.value = [...new Set(params.tagIds || params.selectedTagIds || fallbackTagIds)]
+    .filter((id) => id != null)
+    .map((id) => String(id))
+  selectedLoras.value = (params.loras || []).map((item) => item.name).filter(Boolean)
+  if (params.loras?.[0]?.weight != null) loraWeight.value = params.loras[0].weight
+  overrideSettingsJson.value = settingsDraft(params.overrideSettings)
+    || (typeof params.overrideSettingsJson === 'string' ? params.overrideSettingsJson : '')
+  extraPayloadJson.value = settingsDraft(params.extraPayload)
+    || (typeof params.extraPayloadJson === 'string' ? params.extraPayloadJson : '')
+}
+
 function restoreJob(item) {
   if (!item?.paramsJson) return
   try {
-    const params = JSON.parse(item.paramsJson)
-    generationForm.title = params.title || generationForm.title
-    generationForm.width = params.width || generationForm.width
-    generationForm.height = params.height || generationForm.height
-    generationForm.steps = params.steps || generationForm.steps
-    generationForm.cfgScale = params.cfgScale || generationForm.cfgScale
-    freeText.value = params.prompt || freeText.value
-    negativeText.value = params.negativePrompt || negativeText.value
-    composedPrompt.value = params.prompt || composedPrompt.value
-    composedNegative.value = params.negativePrompt || composedNegative.value
-    selectedLoras.value = (params.loras || []).map((item) => item.name)
-    if (params.loras?.[0]?.weight) loraWeight.value = params.loras[0].weight
-    ElMessage.success('已恢复任务参数')
+    applyGenerationContext(JSON.parse(item.paramsJson))
+    ElMessage.success('已恢复提示词、标签和生成参数')
   } catch {
     ElMessage.warning('这条任务没有可恢复的参数')
   }
@@ -903,6 +1122,8 @@ function pointReasonLabel(reason) {
     DAILY_CLAIM: '每日领取',
     TASK_REWARD: '任务奖励',
     STYLE_EXCHANGE: '风格兑换',
+    STYLE_PACKAGE_EXCHANGE: '风格包兑换',
+    STYLE_PACKAGE_SALE: '风格包售出',
     MANUAL: '人工调整'
   }
   return labels[reason] || reason || '积分变动'
@@ -914,7 +1135,7 @@ function resourceName(item) {
 
 function loraLabel(item) {
   const trigger = suggestedLoraTrigger(item)
-  return trigger ? `${resourceName(item)} · ${trigger}` : resourceName(item)
+  return trigger ? `${resourceName(item)} 路 ${trigger}` : resourceName(item)
 }
 
 function resourceTypeLabel(type) {
@@ -1058,30 +1279,137 @@ async function loadTags() {
   }
 }
 
-async function loadMyArtworks() {
+function normalizeArtworkQuery(query = {}) {
+  return {
+    keyword: query.keyword || '',
+    tagIds: Array.isArray(query.tagIds) ? query.tagIds.filter(Boolean) : [],
+    visibility: query.visibility || '',
+    status: query.status || '',
+    page: Math.max(1, Number(query.page) || 1),
+    size: Math.min(24, Math.max(6, Number(query.size) || 12)),
+    hasNext: Boolean(query.hasNext)
+  }
+}
+
+function artworkQueryParams(query, includeVisibility = true) {
+  const normalized = normalizeArtworkQuery(query)
+  return {
+    keyword: normalized.keyword.trim() || undefined,
+    tagIds: normalized.tagIds.length ? normalized.tagIds.join(',') : undefined,
+    visibility: includeVisibility ? normalized.visibility || undefined : undefined,
+    status: includeVisibility ? normalized.status || undefined : undefined,
+    page: normalized.page,
+    size: normalized.size
+  }
+}
+
+async function loadMyArtworks(query) {
   try {
-    myArtworks.value = (await getMyArtworks()) || []
+    if (query) Object.assign(libraryQuery, normalizeArtworkQuery(query))
+    myArtworks.value = (await getMyArtworks(artworkQueryParams(libraryQuery, true))) || []
+    libraryQuery.hasNext = myArtworks.value.length >= libraryQuery.size
   } catch {
     myArtworks.value = []
+    libraryQuery.hasNext = false
   }
 }
 
-async function loadCommunity() {
+async function loadCommunity(query) {
   try {
-    publicArtworks.value = (await getPublicArtworks()) || []
+    if (query) Object.assign(communityQuery, normalizeArtworkQuery(query))
+    publicArtworks.value = (await getPublicArtworks(artworkQueryParams(communityQuery, false))) || []
+    communityQuery.hasNext = publicArtworks.value.length >= communityQuery.size
   } catch {
     publicArtworks.value = []
+    communityQuery.hasNext = false
   }
 }
 
-async function loadStylePackages() {
+function normalizeStyleQuery(query = {}) {
+  return {
+    keyword: query.keyword || '',
+    tagId: query.tagId ?? null,
+    status: query.status || '',
+    sort: query.sort || 'latest',
+    page: Math.max(1, Number(query.page) || 1),
+    size: Math.min(24, Math.max(4, Number(query.size) || 8)),
+    hasNext: Boolean(query.hasNext)
+  }
+}
+
+function styleQueryParams(query) {
+  const normalized = normalizeStyleQuery(query)
+  return {
+    keyword: normalized.keyword.trim() || undefined,
+    tagId: normalized.tagId || undefined,
+    status: normalized.status || undefined,
+    sort: normalized.sort || undefined,
+    page: normalized.page,
+    size: normalized.size
+  }
+}
+
+async function loadStylePackages(options = {}) {
   styleLoading.value = true
   try {
-    const [mine, market] = await Promise.all([getMyStylePackages(), getMarketStylePackages()])
+    const scope = options.scope || 'all'
+    if (scope === 'market' && options.query) Object.assign(styleMarketQuery, normalizeStyleQuery(options.query))
+    if (scope === 'my' && options.query) Object.assign(myStyleQuery, normalizeStyleQuery(options.query))
+
+    if (scope === 'market') {
+      marketStylePackages.value = (await getMarketStylePackages(styleQueryParams(styleMarketQuery))) || []
+      styleMarketQuery.hasNext = marketStylePackages.value.length >= styleMarketQuery.size
+      return
+    }
+
+    if (scope === 'my') {
+      myStylePackages.value = (await getMyStylePackages(styleQueryParams(myStyleQuery))) || []
+      myStyleQuery.hasNext = myStylePackages.value.length >= myStyleQuery.size
+      return
+    }
+
+    const [mine, market] = await Promise.all([
+      getMyStylePackages(styleQueryParams(myStyleQuery)),
+      getMarketStylePackages(styleQueryParams(styleMarketQuery))
+    ])
     myStylePackages.value = mine || []
     marketStylePackages.value = market || []
+    myStyleQuery.hasNext = myStylePackages.value.length >= myStyleQuery.size
+    styleMarketQuery.hasNext = marketStylePackages.value.length >= styleMarketQuery.size
   } finally {
     styleLoading.value = false
+  }
+}
+
+async function loadMyStyleSubmissions() {
+  try {
+    myStylePackageSubmissions.value = (await getMyStylePackageSubmissions()) || []
+  } catch {
+    myStylePackageSubmissions.value = []
+  }
+}
+
+function normalizeTaskQuery(query = {}) {
+  return {
+    keyword: query.keyword || '',
+    status: query.status || '',
+    tier: query.tier || '',
+    sort: query.sort || 'latest',
+    page: Math.max(1, Number(query.page) || 1),
+    size: Math.min(24, Math.max(4, Number(query.size) || 9)),
+    hasNext: Boolean(query.hasNext)
+  }
+}
+
+function taskQueryParams(query) {
+  const normalized = normalizeTaskQuery(query)
+  return {
+    keyword: normalized.keyword.trim() || undefined,
+    status: normalized.status || undefined,
+    tier: normalized.tier || undefined,
+    sort: normalized.sort || undefined,
+    page: normalized.page,
+    size: normalized.size
   }
 }
 
@@ -1103,7 +1431,26 @@ async function loadStyleSubmissions(pack) {
 
 async function loadStyleArtworks(pack) {
   if (!pack?.id) return
-  await getStylePackageArtworks(pack.id)
+  const artworks = ((await getStylePackageArtworks(pack.id)) || []).map((item) => ({
+    id: item.artworkId || item.id,
+    title: item.artworkTitle || item.title || '作品',
+    imageUrl: item.artworkImageUrl || item.imageUrl || '',
+    status: item.status || 'APPROVED',
+    visibility: item.visibility || 'PUBLIC'
+  }))
+  const patchCollection = (items) => items.map((item) => {
+    if (item.id !== pack.id) return item
+    return {
+      ...item,
+      artworks,
+      stats: {
+        ...(item.stats || {}),
+        approvedArtworkCount: artworks.length
+      }
+    }
+  })
+  myStylePackages.value = patchCollection(myStylePackages.value)
+  marketStylePackages.value = patchCollection(marketStylePackages.value)
 }
 
 function resetStyleForm() {
@@ -1112,8 +1459,12 @@ function resetStyleForm() {
     name: '',
     coverImageUrl: '',
     description: '',
-    promptTemplate: '',
-    negativePromptTemplate: '',
+    styleStatement: '',
+    promptGuide: '',
+    negativePromptGuide: '',
+    featuredArtworkId: null,
+    tagNames: [],
+    collaborators: [],
     pricePoints: 0
   })
 }
@@ -1124,8 +1475,15 @@ function editStylePackage(pack) {
     name: pack.name || '',
     coverImageUrl: pack.coverImageUrl || '',
     description: pack.description || '',
-    promptTemplate: pack.promptTemplate || '',
-    negativePromptTemplate: pack.negativePromptTemplate || '',
+    styleStatement: pack.styleStatement || '',
+    promptGuide: pack.promptGuide || '',
+    negativePromptGuide: pack.negativePromptGuide || '',
+    featuredArtworkId: pack.featuredArtworkId || null,
+    tagNames: (pack.tags || []).map((tag) => tag.name).filter(Boolean),
+    collaborators: (pack.collaborators || []).map((user) => ({
+      userId: user.userId,
+      role: user.role || 'CONTRIBUTOR'
+    })),
     pricePoints: pack.pricePoints || 0
   })
 }
@@ -1133,10 +1491,22 @@ function editStylePackage(pack) {
 async function saveStylePackage() {
   styleLoading.value = true
   try {
+    const payload = {
+      name: styleForm.name,
+      coverImageUrl: styleForm.coverImageUrl,
+      description: styleForm.description,
+      styleStatement: styleForm.styleStatement,
+      promptGuide: styleForm.promptGuide,
+      negativePromptGuide: styleForm.negativePromptGuide,
+      featuredArtworkId: styleForm.featuredArtworkId,
+      pricePoints: styleForm.pricePoints,
+      tagNames: styleForm.tagNames,
+      collaborators: styleForm.collaborators
+    }
     if (styleForm.id) {
-      await updateStylePackage(styleForm.id, styleForm)
+      await updateStylePackage(styleForm.id, payload)
     } else {
-      await createStylePackage(styleForm)
+      await createStylePackage(payload)
     }
     ElMessage.success('风格包已保存')
     await loadStylePackages()
@@ -1148,11 +1518,15 @@ async function saveStylePackage() {
 }
 
 function applyStylePackage(pack) {
-  freeText.value = [freeText.value, pack.promptTemplate].filter(Boolean).join(', ')
-  negativeText.value = [negativeText.value, pack.negativePromptTemplate].filter(Boolean).join(', ')
+  freeText.value = [freeText.value, pack.promptGuide || pack.styleStatement].filter(Boolean).join(', ')
+  negativeText.value = [negativeText.value, pack.negativePromptGuide].filter(Boolean).join(', ')
+  selectedTags.value = [...new Set([
+    ...selectedTags.value,
+    ...(pack.tags || []).map((tag) => tag.id).filter(Boolean)
+  ])]
   composePrompt()
   activeView.value = 'workbench'
-  ElMessage.success('已将风格包应用到工作台')
+  ElMessage.success('已将风格包提示词和标签应用到工作台')
 }
 
 async function publishStylePackageItem(pack) {
@@ -1168,10 +1542,10 @@ async function publishStylePackageItem(pack) {
 async function archiveStylePackageItem(pack) {
   try {
     await archiveStylePackage(pack.id)
-    ElMessage.success('风格包已下架')
+    ElMessage.success('风格包已归档')
     await loadStylePackages()
   } catch (error) {
-    ElMessage.error(error?.message || '下架失败')
+    ElMessage.error(error?.message || '归档失败')
   }
 }
 
@@ -1188,11 +1562,39 @@ async function exchangeStylePackageItem(pack) {
 
 function prepareStyleSubmission(pack) {
   styleSubmissionContext.value = pack
+  Object.assign(styleSubmissionForm, {
+    artworkId: null,
+    note: ''
+  })
 }
 
 function prepareStyleReview(pack) {
   styleReviewContext.value = pack
   patchStyleReviewForm({ rating: 5, comment: '' })
+}
+
+async function submitStyleSubmission() {
+  if (!styleSubmissionContext.value?.id || !styleSubmissionForm.artworkId) {
+    ElMessage.warning('请先选择要投稿的作品')
+    return
+  }
+  styleLoading.value = true
+  try {
+    await submitStylePackageArtwork(styleSubmissionContext.value.id, {
+      artworkId: styleSubmissionForm.artworkId,
+      note: styleSubmissionForm.note
+    })
+    ElMessage.success('风格包投稿已提交')
+    Object.assign(styleSubmissionForm, { artworkId: null, note: '' })
+    await loadMyStyleSubmissions()
+    if (styleSubmissionContext.value?.owner) {
+      await loadStyleSubmissions(styleSubmissionContext.value)
+    }
+  } catch (error) {
+    ElMessage.error(error?.message || '提交投稿失败')
+  } finally {
+    styleLoading.value = false
+  }
 }
 
 async function submitStyleReview() {
@@ -1206,27 +1608,55 @@ async function submitStyleReview() {
   }
 }
 
-async function reviewStyleSubmissionItem({ submission, status }) {
+async function reviewStyleSubmissionItem({ submission, status, comment }) {
   try {
-    await reviewStylePackageSubmission(submission.id, { status })
+    await reviewStylePackageSubmission(submission.id, { status, comment })
     ElMessage.success('投稿审核已更新')
-    if (styleSubmissionContext.value) await loadStyleSubmissions(styleSubmissionContext.value)
+    if (styleSubmissionContext.value) {
+      await loadStyleSubmissions(styleSubmissionContext.value)
+      await loadStyleArtworks(styleSubmissionContext.value)
+    }
+    await loadMyStyleSubmissions()
+    await loadStylePackages()
   } catch (error) {
     ElMessage.error(error?.message || '审核失败')
   }
 }
 
-async function loadTasks() {
+async function loadTasks(options = {}) {
   taskLoading.value = true
   try {
+    const scope = options.scope || 'all'
+    if (scope === 'market' && options.query) Object.assign(taskMarketQuery, normalizeTaskQuery(options.query))
+    if (scope === 'my' && options.query) Object.assign(myTaskQuery, normalizeTaskQuery(options.query))
+
+    if (scope === 'market') {
+      const [market, mineSubs] = await Promise.all([
+        getTaskMarket(taskQueryParams(taskMarketQuery)),
+        getMyTaskSubmissions()
+      ])
+      taskMarket.value = market || []
+      myTaskSubmissions.value = mineSubs || []
+      taskMarketQuery.hasNext = taskMarket.value.length >= taskMarketQuery.size
+      return
+    }
+
+    if (scope === 'my') {
+      myTasks.value = (await getMyTasks(taskQueryParams(myTaskQuery))) || []
+      myTaskQuery.hasNext = myTasks.value.length >= myTaskQuery.size
+      return
+    }
+
     const [market, mine, mineSubs] = await Promise.all([
-      getTaskMarket({ status: taskMarketStatusFilter.value || undefined }),
-      getMyTasks({ status: myTaskStatusFilter.value || undefined }),
+      getTaskMarket(taskQueryParams(taskMarketQuery)),
+      getMyTasks(taskQueryParams(myTaskQuery)),
       getMyTaskSubmissions()
     ])
     taskMarket.value = market || []
     myTasks.value = mine || []
     myTaskSubmissions.value = mineSubs || []
+    taskMarketQuery.hasNext = taskMarket.value.length >= taskMarketQuery.size
+    myTaskQuery.hasNext = myTasks.value.length >= myTaskQuery.size
   } finally {
     taskLoading.value = false
   }
@@ -1346,6 +1776,151 @@ async function claimDaily() {
   }
 }
 
+async function loadNotifications() {
+  if (!currentUser.value) {
+    notifications.value = []
+    unreadNotificationCount.value = 0
+    return
+  }
+  try {
+    const feed = await getNotifications({ page: 1, size: 40 })
+    notifications.value = feed?.items || []
+    unreadNotificationCount.value = Number(feed?.unreadCount || 0)
+  } catch {
+    notifications.value = []
+    unreadNotificationCount.value = 0
+  }
+}
+
+async function loadFavoriteItems() {
+  if (!currentUser.value) {
+    favoriteItems.value = []
+    return
+  }
+  try {
+    favoriteItems.value = (await getFavoriteTargets()) || []
+  } catch {
+    favoriteItems.value = []
+  }
+}
+
+async function loadSubscriptionItems() {
+  if (!currentUser.value) {
+    subscriptionItems.value = []
+    return
+  }
+  try {
+    subscriptionItems.value = (await getSubscriptionTargets()) || []
+  } catch {
+    subscriptionItems.value = []
+  }
+}
+
+async function loadEngagementData() {
+  await Promise.all([loadNotifications(), loadFavoriteItems(), loadSubscriptionItems()])
+}
+
+async function openNotificationsCenter() {
+  if (!currentUser.value) {
+    ElMessage.warning('请先登录')
+    return
+  }
+  await loadNotifications()
+  activateView('account')
+}
+
+async function toggleFavoriteTarget({ type, target }) {
+  if (!currentUser.value) {
+    ElMessage.warning('请先登录')
+    return
+  }
+  const targetId = resolveTargetId(target)
+  if (!type || !targetId) {
+    ElMessage.warning('无法识别要收藏的内容')
+    return
+  }
+  try {
+    const result = await toggleFavoriteTargetApi({ targetType: type, targetId })
+    await loadFavoriteItems()
+    ElMessage.success(result?.active ? '已加入收藏' : '已取消收藏')
+  } catch (error) {
+    ElMessage.error(error?.message || '收藏操作失败')
+  }
+}
+
+async function toggleSubscriptionTarget({ type, target }) {
+  if (!currentUser.value) {
+    ElMessage.warning('请先登录')
+    return
+  }
+  const targetId = resolveTargetId(target)
+  if (!type || !targetId) {
+    ElMessage.warning('无法识别要订阅的内容')
+    return
+  }
+  try {
+    const result = await toggleSubscriptionTargetApi({ targetType: type, targetId })
+    await Promise.all([loadSubscriptionItems(), loadNotifications()])
+    ElMessage.success(result?.active ? '已开启订阅' : '已取消订阅')
+  } catch (error) {
+    ElMessage.error(error?.message || '订阅操作失败')
+  }
+}
+
+async function markNotificationReadItem(notification) {
+  if (!notification?.id) return
+  try {
+    await markNotificationRead(notification.id)
+    notifications.value = notifications.value.map((item) =>
+      item.id === notification.id ? { ...item, read: true } : item
+    )
+    unreadNotificationCount.value = Math.max(0, unreadNotificationCount.value - 1)
+  } catch (error) {
+    ElMessage.error(error?.message || '标记已读失败')
+  }
+}
+
+async function markAllNotificationsReadItems() {
+  try {
+    await markAllNotificationsRead()
+    notifications.value = notifications.value.map((item) => ({ ...item, read: true }))
+    unreadNotificationCount.value = 0
+    ElMessage.success('通知已全部标记为已读')
+  } catch (error) {
+    ElMessage.error(error?.message || '批量已读失败')
+  }
+}
+
+async function openEngagementTarget(item) {
+  const targetView = item?.routeView || 'account'
+  const targetType = item?.targetType || item?.relatedType
+  const targetId = item?.targetId || item?.relatedId
+  prepareEngagementView(targetView)
+  await loadViewForEngagement(targetView)
+  if (targetType === 'TASK' && targetId) {
+    try {
+      injectTaskTarget(await getTaskDetail(targetId), targetView)
+    } catch {
+      // Keep the page usable even if the direct detail fetch fails.
+    }
+  }
+  if (targetType === 'STYLE_PACKAGE' && targetId) {
+    try {
+      injectStyleTarget(await getStylePackageDetail(targetId), targetView)
+    } catch {
+      // Keep the page usable even if the direct detail fetch fails.
+    }
+  }
+  activateView(targetView)
+  if (targetType === 'ARTWORK' && targetId) {
+    openArtworkDetail({ id: targetId, title: item?.title || '作品' })
+    return
+  }
+  if (targetId) {
+    focusEngagementTarget(targetType, targetId)
+  }
+}
+
 async function refreshAdminData() {
   if (currentUser.value?.role !== 'ADMIN') return
   auditLoading.value = true
@@ -1388,7 +1963,13 @@ function formatMetricValue(metric) {
 }
 
 function statusCountText(data) {
-  return Object.entries(data || {}).map(([key, value]) => `${statusLabel(key)} ${value}`).join(' · ') || '暂无数据'
+  const entries = Array.isArray(data)
+    ? data.map((item) => [item?.status, item?.count])
+    : Object.entries(data || {})
+  return entries
+    .filter(([key]) => key)
+    .map(([key, value]) => `${statusLabel(key)} ${Number(value || 0)}`)
+    .join(' · ') || '暂无数据'
 }
 
 async function saveTagCategory() {
@@ -1409,7 +1990,18 @@ async function saveTagCategory() {
 }
 
 function resetTagForm() {
-  Object.assign(tagForm, { id: null, categoryId: null, name: '', promptText: '', negativePromptText: '', previewImageUrl: '', weight: 1, visibility: 'PUBLIC' })
+  Object.assign(tagForm, {
+    id: null,
+    categoryId: null,
+    name: '',
+    displayNameZh: '',
+    descriptionZh: '',
+    promptText: '',
+    negativePromptText: '',
+    previewImageUrl: '',
+    weight: 1,
+    visibility: 'PUBLIC'
+  })
 }
 
 async function saveTagItem() {
@@ -1434,6 +2026,8 @@ function editTagItem({ category, tag }) {
     id: tag.id,
     categoryId: category.id,
     name: tag.name || '',
+    displayNameZh: tag.displayNameZh || '',
+    descriptionZh: tag.descriptionZh || '',
     promptText: tag.promptText || '',
     negativePromptText: tag.negativePromptText || '',
     previewImageUrl: tag.previewImageUrl || '',
@@ -1467,7 +2061,8 @@ function styleStatsItems(pack) {
   const stats = pack?.stats || {}
   return [
     { label: '评分', value: Number(stats.averageRating || 0).toFixed(1) },
-    { label: '兑换', value: stats.accessCount || 0 },
+    { label: '收录', value: stats.approvedArtworkCount || pack?.artworks?.length || 0 },
+    { label: '协作', value: stats.collaboratorCount || 0 },
     { label: '版本', value: stats.versionCount || 0 }
   ]
 }
@@ -1492,7 +2087,7 @@ function toggleAllFiltered() {
     clearArtworkSelection()
     return
   }
-  selectedArtworkIds.value = new Set(filteredArtworks.value.map((artwork) => artwork.id))
+  selectedArtworkIds.value = new Set(myArtworks.value.map((artwork) => artwork.id))
 }
 
 async function publishSelected() {
@@ -1548,12 +2143,20 @@ async function openArtworkDetail(artwork) {
   } catch {
     artworkDetail.value = { ...artwork }
   }
+  artworkDetailTagIds.value = (artworkDetail.value?.tags || []).map((tag) => tag.id).filter(Boolean)
 }
 
 async function saveArtworkDetail() {
   if (!artworkDetail.value?.id) return
   try {
-    await updateArtwork(artworkDetail.value.id, artworkDetail.value)
+    artworkDetail.value = await updateArtwork(artworkDetail.value.id, {
+      title: artworkDetail.value.title,
+      promptText: artworkDetail.value.promptText || '',
+      negativePrompt: artworkDetail.value.negativePrompt || '',
+      visibility: artworkDetail.value.visibility,
+      tagIds: artworkDetailTagIds.value
+    })
+    artworkDetailTagIds.value = (artworkDetail.value?.tags || []).map((tag) => tag.id).filter(Boolean)
     ElMessage.success('作品信息已更新')
     await refreshContent()
   } catch (error) {
@@ -1576,12 +2179,23 @@ async function archiveArtworkDetail() {
 
 function reuseArtworkPrompt() {
   if (!artworkDetail.value) return
-  freeText.value = artworkDetail.value.promptText || ''
-  negativeText.value = artworkDetail.value.negativePromptText || ''
-  composedPrompt.value = artworkDetail.value.promptText || ''
-  composedNegative.value = artworkDetail.value.negativePromptText || ''
+  let params = {
+    prompt: artworkDetail.value.promptText || '',
+    negativePrompt: artworkDetail.value.negativePrompt || ''
+  }
+  try {
+    const metadata = JSON.parse(artworkDetail.value.generationParamsJson || '{}')
+    const restored = metadata.request || metadata
+    if (restored && Object.keys(restored).length) {
+      params = { ...params, ...restored }
+    }
+  } catch {
+    // Older artworks may not have structured generation metadata.
+  }
+  applyGenerationContext(params, artworkDetailTagIds.value)
   activeView.value = 'workbench'
   detailVisible.value = false
+  ElMessage.success('已恢复作品的提示词、标签和生成参数')
 }
 
 function downloadCurrent() {
@@ -1590,11 +2204,19 @@ function downloadCurrent() {
 }
 
 async function refreshContent() {
-  await Promise.all([loadMyArtworks(), loadCommunity(), refreshJobs()])
+  const jobs = [loadMyArtworks(), loadCommunity(), refreshJobs()]
+  if (currentUser.value) {
+    jobs.push(loadNotifications())
+  }
+  await Promise.all(jobs)
 }
 
 async function logout() {
   auth.logoutUser()
+  notifications.value = []
+  unreadNotificationCount.value = 0
+  favoriteItems.value = []
+  subscriptionItems.value = []
   ElMessage.success('已退出登录')
   await router.push({ name: 'auth' })
 }
@@ -1603,7 +2225,14 @@ onMounted(async () => {
   await auth.hydrateAuth()
   await Promise.all([loadTags(), loadProvider()])
   if (currentUser.value) {
-    await Promise.all([refreshContent(), loadStylePackages(), loadTasks(), loadPointAccount()])
+    await Promise.all([
+      refreshContent(),
+      loadStylePackages(),
+      loadMyStyleSubmissions(),
+      loadTasks(),
+      loadPointAccount(),
+      loadEngagementData()
+    ])
     if (currentUser.value.role === 'ADMIN') {
       await refreshAdminData()
     }

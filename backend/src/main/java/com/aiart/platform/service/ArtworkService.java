@@ -5,9 +5,9 @@ import com.aiart.platform.dto.ArtworkDtos;
 import java.util.List;
 
 public interface ArtworkService {
-    List<ArtworkDtos.ArtworkCard> myArtworks(Long userId, int page, int size, List<Long> tagIds, String visibility, String status);
+    List<ArtworkDtos.ArtworkCard> myArtworks(Long userId, int page, int size, String keyword, List<Long> tagIds, String visibility, String status);
 
-    List<ArtworkDtos.ArtworkCard> publicArtworks(int page, int size, List<Long> tagIds);
+    List<ArtworkDtos.ArtworkCard> publicArtworks(int page, int size, String keyword, List<Long> tagIds);
 
     ArtworkDtos.ArtworkDetail requestPublish(Long userId, Long artworkId);
 

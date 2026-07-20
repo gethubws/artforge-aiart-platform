@@ -12,6 +12,9 @@ frontend/.vite/
 .env.*
 *.local
 
+# Runtime logs
+*.log
+
 # IDE
 .idea/
 .vscode/

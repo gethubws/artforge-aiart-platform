@@ -30,14 +30,21 @@
       <el-tooltip content="刷新作品数据" placement="bottom">
         <el-button :icon="Refresh" circle @click="$emit('refresh-artworks')" />
       </el-tooltip>
+      <el-tooltip content="通知中心" placement="bottom">
+        <el-badge :value="unreadNotificationCount" :hidden="!unreadNotificationCount" :max="99">
+          <el-button :icon="Bell" circle :disabled="!currentUser" @click="$emit('open-notifications')" />
+        </el-badge>
+      </el-tooltip>
+
       <el-dropdown trigger="click" placement="bottom-end">
         <button class="user-pill" :class="{ guest: !currentUser }" type="button">
           <span class="avatar-dot">{{ userInitial }}</span>
           <span>{{ currentUser?.displayName || currentUser?.username || '未登录' }}</span>
+          <small v-if="currentUser">{{ roleLabel }}</small>
         </button>
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item @click="$emit('navigate', 'account')">用户中心</el-dropdown-item>
+            <el-dropdown-item @click="$emit('navigate', 'account')">个人中心</el-dropdown-item>
             <el-dropdown-item @click="$emit('navigate', 'library')">作品库</el-dropdown-item>
             <el-dropdown-item @click="$emit('navigate', 'my-styles')">我的风格包</el-dropdown-item>
             <el-dropdown-item @click="$emit('navigate', 'my-tasks')">我的任务</el-dropdown-item>
@@ -53,14 +60,15 @@
 
 <script setup>
 import { computed } from 'vue'
-import { BrushFilled, Connection, Refresh } from '@element-plus/icons-vue'
+import { Bell, BrushFilled, Connection, Refresh } from '@element-plus/icons-vue'
 
 const props = defineProps({
   activeView: { type: String, required: true },
-  currentUser: { type: Object, default: null }
+  currentUser: { type: Object, default: null },
+  unreadNotificationCount: { type: Number, default: 0 }
 })
 
-defineEmits(['navigate', 'refresh-provider', 'refresh-artworks', 'logout'])
+defineEmits(['navigate', 'refresh-provider', 'refresh-artworks', 'logout', 'open-notifications'])
 
 const tabs = [
   { name: 'workbench', label: '工作台' },
@@ -72,6 +80,7 @@ const tabs = [
 
 const visibleTabs = computed(() => tabs)
 const isAdmin = computed(() => props.currentUser?.role === 'ADMIN')
+const roleLabel = computed(() => (props.currentUser?.role === 'ADMIN' ? '管理员' : '用户'))
 const userInitial = computed(() => {
   const name = props.currentUser?.displayName || props.currentUser?.username || 'A'
   return name.slice(0, 1).toUpperCase()

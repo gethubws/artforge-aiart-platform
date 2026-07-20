@@ -10,7 +10,7 @@ public final class ArtworkDtos {
     private ArtworkDtos() {
     }
 
-    public record TagSummary(Long id, String name, String categoryName) {
+    public record TagSummary(Long id, String name, String displayNameZh, String categoryName) {
     }
 
     public record ArtworkCard(Long id, String title, String imageUrl, String promptText, String visibility, String status, LocalDateTime createdAt,
@@ -24,6 +24,8 @@ public final class ArtworkDtos {
 
     public record UpdateRequest(
             @NotBlank @Size(max = 120) String title,
+            String promptText,
+            String negativePrompt,
             String visibility,
             List<Long> tagIds) {
     }

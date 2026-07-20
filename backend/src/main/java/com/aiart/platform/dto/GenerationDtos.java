@@ -23,6 +23,8 @@ public final class GenerationDtos {
     public record GenerateRequest(
             @NotBlank String prompt,
             String negativePrompt,
+            String freeText,
+            String negativeText,
             String title,
             List<Long> tagIds,
             String model,

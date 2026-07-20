@@ -34,6 +34,7 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -290,9 +291,22 @@ public class GenerationServiceImpl implements GenerationService {
 
     @Override
     public List<Map<String, Object>> vaes() {
-        List<Map<String, Object>> vaes = get("/sdapi/v1/sd-vae", new ParameterizedTypeReference<>() {
-        });
-        return vaes == null ? List.of() : vaes;
+        List<Map<String, Object>> vaes = tryGetList("/sdapi/v1/sd-modules");
+        if (!vaes.isEmpty()) {
+            return vaes;
+        }
+
+        vaes = tryGetList("/sdapi/v1/sd-vae");
+        if (!vaes.isEmpty()) {
+            return vaes;
+        }
+
+        Map<String, Object> options = providerOptions();
+        Object currentVae = options.get("sd_vae");
+        if (currentVae instanceof String name && StringUtils.hasText(name)) {
+            return List.of(Map.of("name", name, "title", name));
+        }
+        return List.of();
     }
 
     @Override
@@ -312,6 +326,16 @@ public class GenerationServiceImpl implements GenerationService {
                     .block(Duration.ofSeconds(Math.min(timeoutSeconds, 30)));
         } catch (WebClientRequestException | WebClientResponseException ex) {
             throw new BusinessException(ErrorCode.SD_UNAVAILABLE, ex.getMessage());
+        }
+    }
+
+    private List<Map<String, Object>> tryGetList(String path) {
+        try {
+            List<Map<String, Object>> result = get(path, new ParameterizedTypeReference<>() {
+            });
+            return result == null ? List.of() : result;
+        } catch (BusinessException ex) {
+            return List.of();
         }
     }
 
@@ -347,7 +371,7 @@ public class GenerationServiceImpl implements GenerationService {
         payload.put("steps", request.steps() == null ? 24 : request.steps());
         payload.put("cfg_scale", request.cfgScale() == null ? 7.0 : request.cfgScale());
         payload.put("sampler_name", StringUtils.hasText(request.samplerName()) ? request.samplerName() : "DPM++ 2M");
-        payload.put("seed", request.seed() == null ? -1 : request.seed());
+        payload.put("seed", request.seed() == null ? -1 : BigDecimal.valueOf(request.seed()));
         payload.put("restore_faces", Boolean.TRUE.equals(request.restoreFaces()));
         payload.put("tiling", Boolean.TRUE.equals(request.tiling()));
         payload.put("batch_size", clampInt(request.batchSize(), 1, 4, 1));

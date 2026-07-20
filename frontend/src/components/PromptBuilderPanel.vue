@@ -33,7 +33,7 @@
         type="button"
         @click="$emit('toggle-tag', tag.id)"
       >
-        {{ tag.name }}
+        <BilingualTagLabel :name="tag.name" :display-name-zh="tag.displayNameZh" />
       </button>
       <span v-if="selectedTagObjects.length > 6" class="selected-tag-more">+{{ selectedTagObjects.length - 6 }}</span>
     </div>
@@ -50,7 +50,7 @@
             type="button"
             @click="$emit('toggle-tag', tag.id)"
           >
-            {{ tag.name }}
+            <BilingualTagLabel :name="tag.name" :display-name-zh="tag.displayNameZh" />
           </button>
         </div>
       </div>
@@ -62,8 +62,8 @@
         <div v-else class="tag-preview-empty">预览待补充</div>
       </div>
       <div class="tag-preview-meta">
-        <strong>{{ focusedTag.name }}</strong>
-        <p>{{ focusedTag.promptText }}</p>
+        <strong><BilingualTagLabel :name="focusedTag.name" :display-name-zh="focusedTag.displayNameZh" /></strong>
+        <p>{{ focusedTag.descriptionZh || focusedTag.promptText }}</p>
       </div>
     </div>
 
@@ -98,6 +98,7 @@
 <script setup>
 import { computed } from 'vue'
 import { FullScreen, MagicStick, Refresh } from '@element-plus/icons-vue'
+import BilingualTagLabel from './BilingualTagLabel.vue'
 
 const props = defineProps({
   freeText: { type: String, default: '' },

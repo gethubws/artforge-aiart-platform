@@ -11,7 +11,9 @@ public final class TagDtos {
     private TagDtos() {
     }
 
-    public record TagNode(Long id, String name, String promptText, String negativePromptText, String previewImageUrl, BigDecimal weight, String visibility) {
+    public record TagNode(Long id, String name, String displayNameZh, String descriptionZh,
+                          String promptText, String negativePromptText, String previewImageUrl,
+                          BigDecimal weight, String visibility) {
     }
 
     public record TagCategoryNode(Long id, String name, String slug, List<TagNode> tags) {
@@ -26,6 +28,8 @@ public final class TagDtos {
     public record TagSaveRequest(
             @NotNull Long categoryId,
             @NotBlank @Size(max = 80) String name,
+            @Size(max = 80) String displayNameZh,
+            @Size(max = 255) String descriptionZh,
             @NotBlank @Size(max = 255) String promptText,
             @Size(max = 255) String negativePromptText,
             @Size(max = 512) String previewImageUrl,

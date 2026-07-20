@@ -56,6 +56,8 @@ CREATE TABLE IF NOT EXISTS tag (
   id BIGINT PRIMARY KEY,
   category_id BIGINT NOT NULL,
   name VARCHAR(80) NOT NULL,
+  display_name_zh VARCHAR(80),
+  description_zh VARCHAR(255),
   prompt_text VARCHAR(255) NOT NULL,
   negative_prompt_text VARCHAR(255),
   preview_image_url VARCHAR(512),
@@ -125,15 +127,20 @@ CREATE TABLE IF NOT EXISTS style_package (
   name VARCHAR(120) NOT NULL,
   description TEXT,
   cover_image_url VARCHAR(512),
-  prompt_template TEXT,
-  negative_prompt_template TEXT,
+  style_statement TEXT,
+  prompt_guide TEXT,
+  negative_prompt_guide TEXT,
+  featured_artwork_id BIGINT,
+  artwork_count INT NOT NULL DEFAULT 0,
   price_points DECIMAL(18,2) NOT NULL DEFAULT 0.00,
   status VARCHAR(32) NOT NULL DEFAULT 'DRAFT',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_style_package_user (user_id),
   INDEX idx_style_package_status (status),
-  CONSTRAINT fk_style_package_user FOREIGN KEY (user_id) REFERENCES users(id)
+  INDEX idx_style_package_featured_artwork (featured_artwork_id),
+  CONSTRAINT fk_style_package_user FOREIGN KEY (user_id) REFERENCES users(id),
+  CONSTRAINT fk_style_package_featured_artwork FOREIGN KEY (featured_artwork_id) REFERENCES artwork(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS style_package_version (
@@ -144,16 +151,21 @@ CREATE TABLE IF NOT EXISTS style_package_version (
   name VARCHAR(120) NOT NULL,
   description TEXT,
   cover_image_url VARCHAR(512),
-  prompt_template TEXT,
-  negative_prompt_template TEXT,
+  style_statement TEXT,
+  prompt_guide TEXT,
+  negative_prompt_guide TEXT,
+  featured_artwork_id BIGINT,
+  artwork_count INT NOT NULL DEFAULT 0,
   price_points DECIMAL(18,2) NOT NULL DEFAULT 0.00,
   change_note VARCHAR(255),
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uk_style_package_version (style_package_id, version_number),
   INDEX idx_style_version_package_time (style_package_id, created_at),
   INDEX idx_style_version_user_time (user_id, created_at),
+  INDEX idx_style_version_featured_artwork (featured_artwork_id),
   CONSTRAINT fk_style_version_package FOREIGN KEY (style_package_id) REFERENCES style_package(id),
-  CONSTRAINT fk_style_version_user FOREIGN KEY (user_id) REFERENCES users(id)
+  CONSTRAINT fk_style_version_user FOREIGN KEY (user_id) REFERENCES users(id),
+  CONSTRAINT fk_style_version_featured_artwork FOREIGN KEY (featured_artwork_id) REFERENCES artwork(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS style_package_review (
@@ -202,6 +214,29 @@ CREATE TABLE IF NOT EXISTS style_package_submission (
   CONSTRAINT fk_style_submission_artwork FOREIGN KEY (artwork_id) REFERENCES artwork(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS style_package_tag (
+  id BIGINT PRIMARY KEY,
+  style_package_id BIGINT NOT NULL,
+  tag_id BIGINT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_style_package_tag (style_package_id, tag_id),
+  INDEX idx_style_package_tag_tag (tag_id, created_at),
+  CONSTRAINT fk_style_package_tag_package FOREIGN KEY (style_package_id) REFERENCES style_package(id),
+  CONSTRAINT fk_style_package_tag_tag FOREIGN KEY (tag_id) REFERENCES tag(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS style_package_collaborator (
+  id BIGINT PRIMARY KEY,
+  style_package_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
+  role VARCHAR(40) NOT NULL DEFAULT 'CONTRIBUTOR',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_style_package_collaborator (style_package_id, user_id),
+  INDEX idx_style_package_collaborator_user (user_id, created_at),
+  CONSTRAINT fk_style_package_collaborator_package FOREIGN KEY (style_package_id) REFERENCES style_package(id),
+  CONSTRAINT fk_style_package_collaborator_user FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS enterprise_task (
   id BIGINT PRIMARY KEY,
   publisher_id BIGINT NOT NULL,
@@ -237,6 +272,45 @@ CREATE TABLE IF NOT EXISTS enterprise_task_submission (
   CONSTRAINT fk_task_submission_artwork FOREIGN KEY (artwork_id) REFERENCES artwork(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS user_favorite (
+  id BIGINT PRIMARY KEY,
+  user_id BIGINT NOT NULL,
+  target_type VARCHAR(32) NOT NULL,
+  target_id BIGINT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_user_favorite_target (user_id, target_type, target_id),
+  INDEX idx_user_favorite_user_time (user_id, created_at),
+  CONSTRAINT fk_user_favorite_user FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS user_subscription (
+  id BIGINT PRIMARY KEY,
+  user_id BIGINT NOT NULL,
+  target_type VARCHAR(32) NOT NULL,
+  target_id BIGINT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_user_subscription_target (user_id, target_type, target_id),
+  INDEX idx_user_subscription_user_time (user_id, created_at),
+  INDEX idx_user_subscription_target (target_type, target_id, created_at),
+  CONSTRAINT fk_user_subscription_user FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS user_notification (
+  id BIGINT PRIMARY KEY,
+  user_id BIGINT NOT NULL,
+  type VARCHAR(64) NOT NULL,
+  title VARCHAR(160) NOT NULL,
+  content TEXT,
+  related_type VARCHAR(32),
+  related_id BIGINT,
+  is_read TINYINT(1) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  read_at DATETIME,
+  INDEX idx_user_notification_user_time (user_id, created_at),
+  INDEX idx_user_notification_user_read (user_id, is_read, created_at),
+  CONSTRAINT fk_user_notification_user FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS content_audit (
   id BIGINT PRIMARY KEY,
   content_type VARCHAR(40) NOT NULL,
@@ -259,14 +333,14 @@ INSERT IGNORE INTO tag_category (id, name, slug, parent_id, sort_order) VALUES
   (1004, 'Composition', 'composition', 0, 4),
   (1005, 'Quality', 'quality', 0, 5);
 
-INSERT IGNORE INTO tag (id, category_id, name, prompt_text, negative_prompt_text, preview_image_url, weight, usage_count) VALUES
-  (2001, 1001, 'cinematic', 'cinematic style', NULL, NULL, 1.20, 0),
-  (2002, 1001, 'watercolor', 'watercolor illustration', NULL, NULL, 1.00, 0),
-  (2003, 1001, 'cyberpunk', 'cyberpunk aesthetic', NULL, NULL, 1.10, 0),
-  (2004, 1002, 'character', 'detailed character portrait', NULL, NULL, 1.10, 0),
-  (2005, 1002, 'landscape', 'wide landscape scene', NULL, NULL, 1.00, 0),
-  (2006, 1003, 'soft light', 'soft diffused lighting', NULL, NULL, 1.00, 0),
-  (2007, 1003, 'rim light', 'dramatic rim lighting', NULL, NULL, 1.10, 0),
-  (2008, 1004, 'close-up', 'close-up composition', NULL, NULL, 1.00, 0),
-  (2009, 1004, 'wide shot', 'wide angle composition', NULL, NULL, 1.00, 0),
-  (2010, 1005, 'high detail', 'highly detailed, sharp focus', 'low quality, blurry', NULL, 1.30, 0);
+INSERT IGNORE INTO tag (id, category_id, name, display_name_zh, description_zh, prompt_text, negative_prompt_text, preview_image_url, weight, usage_count) VALUES
+  (2001, 1001, 'cinematic', '电影感', '强调镜头语言、叙事氛围和胶片质感。', 'cinematic style', NULL, NULL, 1.20, 0),
+  (2002, 1001, 'watercolor', '水彩', '偏柔和、带纸面渗色感的插画风格。', 'watercolor illustration', NULL, NULL, 1.00, 0),
+  (2003, 1001, 'cyberpunk', '赛博朋克', '强调霓虹、未来都市、科技感与反乌托邦氛围。', 'cyberpunk aesthetic', NULL, NULL, 1.10, 0),
+  (2004, 1002, 'character', '人物', '适合角色肖像、半身像和人物主体画面。', 'detailed character portrait', NULL, NULL, 1.10, 0),
+  (2005, 1002, 'landscape', '风景', '适合自然景观、城市景观和大场景画面。', 'wide landscape scene', NULL, NULL, 1.00, 0),
+  (2006, 1003, 'soft light', '柔光', '画面光线更柔和，边缘不过分锐利。', 'soft diffused lighting', NULL, NULL, 1.00, 0),
+  (2007, 1003, 'rim light', '轮廓光', '强化主体边缘高光和戏剧性光影。', 'dramatic rim lighting', NULL, NULL, 1.10, 0),
+  (2008, 1004, 'close-up', '近景', '突出主体局部细节与面部情绪。', 'close-up composition', NULL, NULL, 1.00, 0),
+  (2009, 1004, 'wide shot', '远景', '适合展现场景空间关系和整体构图。', 'wide angle composition', NULL, NULL, 1.00, 0),
+  (2010, 1005, 'high detail', '高细节', '强调清晰度、细节层次和画面完成度。', 'highly detailed, sharp focus', 'low quality, blurry', NULL, 1.30, 0);

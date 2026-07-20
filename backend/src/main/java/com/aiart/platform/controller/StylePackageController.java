@@ -109,13 +109,29 @@ public class StylePackageController {
 
     @GetMapping("/my")
     public ApiResponse<List<StylePackageDtos.Card>> myPackages(@RequestParam(defaultValue = "1") int page,
+                                                               @RequestParam(required = false) String keyword,
+                                                               @RequestParam(required = false) Long tagId,
+                                                               @RequestParam(required = false) String status,
+                                                               @RequestParam(required = false) String sort,
                                                                @RequestParam(defaultValue = "20") int size) {
-        return ApiResponse.ok(stylePackageService.myPackages(currentUser.requireUserId(), page, size));
+        return ApiResponse.ok(stylePackageService.myPackages(
+                currentUser.requireUserId(),
+                new StylePackageDtos.ListQuery(keyword, tagId, status, sort),
+                page,
+                size));
     }
 
     @GetMapping("/market")
     public ApiResponse<List<StylePackageDtos.Card>> marketPackages(@RequestParam(defaultValue = "1") int page,
+                                                                   @RequestParam(required = false) String keyword,
+                                                                   @RequestParam(required = false) Long tagId,
+                                                                   @RequestParam(required = false) String status,
+                                                                   @RequestParam(required = false) String sort,
                                                                    @RequestParam(defaultValue = "20") int size) {
-        return ApiResponse.ok(stylePackageService.marketPackages(currentUser.userIdOrNull(), page, size));
+        return ApiResponse.ok(stylePackageService.marketPackages(
+                currentUser.userIdOrNull(),
+                new StylePackageDtos.ListQuery(keyword, tagId, status, sort),
+                page,
+                size));
     }
 }

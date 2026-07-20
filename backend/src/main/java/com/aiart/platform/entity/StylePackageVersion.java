@@ -19,8 +19,11 @@ public class StylePackageVersion {
     private String name;
     private String description;
     private String coverImageUrl;
-    private String promptTemplate;
-    private String negativePromptTemplate;
+    private String styleStatement;
+    private String promptGuide;
+    private String negativePromptGuide;
+    private Long featuredArtworkId;
+    private Integer artworkCount;
     private BigDecimal pricePoints;
     private String changeNote;
     private LocalDateTime createdAt;

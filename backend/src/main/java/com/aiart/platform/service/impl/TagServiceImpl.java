@@ -153,12 +153,23 @@ public class TagServiceImpl implements TagService {
     }
 
     private TagDtos.TagNode toNode(Tag tag) {
-        return new TagDtos.TagNode(tag.getId(), tag.getName(), tag.getPromptText(), tag.getNegativePromptText(), tag.getPreviewImageUrl(), tag.getWeight(), tag.getVisibility());
+        return new TagDtos.TagNode(
+                tag.getId(),
+                tag.getName(),
+                tag.getDisplayNameZh(),
+                tag.getDescriptionZh(),
+                tag.getPromptText(),
+                tag.getNegativePromptText(),
+                tag.getPreviewImageUrl(),
+                tag.getWeight(),
+                tag.getVisibility());
     }
 
     private void apply(Tag tag, TagDtos.TagSaveRequest request) {
         tag.setCategoryId(request.categoryId());
         tag.setName(request.name().trim());
+        tag.setDisplayNameZh(trimToNull(request.displayNameZh()));
+        tag.setDescriptionZh(trimToNull(request.descriptionZh()));
         tag.setPromptText(request.promptText().trim());
         tag.setNegativePromptText(trimToNull(request.negativePromptText()));
         tag.setPreviewImageUrl(trimToNull(request.previewImageUrl()));

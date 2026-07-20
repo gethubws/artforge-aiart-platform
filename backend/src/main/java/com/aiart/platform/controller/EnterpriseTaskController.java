@@ -45,18 +45,34 @@ public class EnterpriseTaskController {
         return ApiResponse.ok(taskService.close(currentUser.requireUserId(), taskId));
     }
 
+    @GetMapping("/{taskId}")
+    public ApiResponse<TaskDtos.TaskCard> detail(@PathVariable Long taskId) {
+        return ApiResponse.ok(taskService.detail(currentUser.userIdOrNull(), taskId));
+    }
+
     @GetMapping("/market")
     public ApiResponse<List<TaskDtos.TaskCard>> market(@RequestParam(defaultValue = "1") int page,
                                                        @RequestParam(defaultValue = "20") int size,
-                                                       @RequestParam(required = false) String status) {
-        return ApiResponse.ok(taskService.market(page, size, status));
+                                                       @RequestParam(required = false) String keyword,
+                                                       @RequestParam(required = false) String status,
+                                                       @RequestParam(required = false) String tier,
+                                                       @RequestParam(required = false) String sort) {
+        return ApiResponse.ok(taskService.market(page, size, new TaskDtos.ListQuery(keyword, status, tier, sort)));
     }
 
     @GetMapping("/my")
     public ApiResponse<List<TaskDtos.TaskCard>> myTasks(@RequestParam(defaultValue = "1") int page,
                                                         @RequestParam(defaultValue = "20") int size,
-                                                        @RequestParam(required = false) String status) {
-        return ApiResponse.ok(taskService.myTasks(currentUser.requireUserId(), page, size, status));
+                                                        @RequestParam(required = false) String keyword,
+                                                        @RequestParam(required = false) String status,
+                                                        @RequestParam(required = false) String tier,
+                                                        @RequestParam(required = false) String sort) {
+        return ApiResponse.ok(taskService.myTasks(
+                currentUser.requireUserId(),
+                page,
+                size,
+                new TaskDtos.ListQuery(keyword, status, tier, sort)
+        ));
     }
 
     @PostMapping("/{taskId}/submissions")

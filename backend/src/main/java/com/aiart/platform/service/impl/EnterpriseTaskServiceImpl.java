@@ -11,6 +11,7 @@ import com.aiart.platform.mapper.EnterpriseTaskMapper;
 import com.aiart.platform.mapper.EnterpriseTaskSubmissionMapper;
 import com.aiart.platform.service.EnterpriseTaskService;
 import com.aiart.platform.service.PointService;
+import com.aiart.platform.service.UserEngagementService;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -22,8 +23,11 @@ import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +36,7 @@ public class EnterpriseTaskServiceImpl implements EnterpriseTaskService {
     private final EnterpriseTaskSubmissionMapper submissionMapper;
     private final ArtworkMapper artworkMapper;
     private final PointService pointService;
+    private final UserEngagementService userEngagementService;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -57,6 +62,8 @@ public class EnterpriseTaskServiceImpl implements EnterpriseTaskService {
         apply(task, request);
         task.setUpdatedAt(LocalDateTime.now());
         taskMapper.updateById(task);
+        notifyTaskWatchers(task, userId, Set.of(), "TASK_UPDATED", "任务内容已更新",
+                "你关注的任务《" + task.getTitle() + "》有新的内容调整。");
         return card(task);
     }
 
@@ -67,6 +74,8 @@ public class EnterpriseTaskServiceImpl implements EnterpriseTaskService {
         task.setStatus("PUBLISHED");
         task.setUpdatedAt(LocalDateTime.now());
         taskMapper.updateById(task);
+        notifyTaskWatchers(task, userId, Set.of(), "TASK_PUBLISHED", "任务已发布",
+                "任务《" + task.getTitle() + "》已经进入公开征集状态。");
         return card(task);
     }
 
@@ -77,32 +86,50 @@ public class EnterpriseTaskServiceImpl implements EnterpriseTaskService {
         task.setStatus("CLOSED");
         task.setUpdatedAt(LocalDateTime.now());
         taskMapper.updateById(task);
+        notifyTaskWatchers(task, userId, Set.of(), "TASK_CLOSED", "任务已关闭",
+                "你关注的任务《" + task.getTitle() + "》已关闭。");
         return card(task);
     }
 
     @Override
-    public List<TaskDtos.TaskCard> market(int page, int size, String status) {
-        String targetStatus = StringUtils.hasText(status) ? status.trim().toUpperCase() : "PUBLISHED";
-        if (!List.of("PUBLISHED", "CLOSED").contains(targetStatus)) {
-            targetStatus = "PUBLISHED";
+    public TaskDtos.TaskCard detail(Long viewerId, Long taskId) {
+        EnterpriseTask task = taskMapper.selectById(taskId);
+        if (task == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "Task not found");
         }
-        Page<EnterpriseTask> result = taskMapper.selectPage(page(page, size), Wrappers.<EnterpriseTask>lambdaQuery()
-                .eq(EnterpriseTask::getStatus, targetStatus)
-                .orderByDesc(EnterpriseTask::getUpdatedAt));
-        return result.getRecords().stream().map(this::card).toList();
+        if (viewerId == null) {
+            if (!"PUBLISHED".equals(task.getStatus()) && !"CLOSED".equals(task.getStatus())) {
+                throw new BusinessException(ErrorCode.NOT_FOUND, "Task not found");
+            }
+        } else if (!viewerId.equals(task.getPublisherId())
+                && !"PUBLISHED".equals(task.getStatus())
+                && !"CLOSED".equals(task.getStatus())) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "Task not found");
+        }
+        return card(task);
     }
 
     @Override
-    public List<TaskDtos.TaskCard> myTasks(Long userId, int page, int size, String status) {
-        var query = Wrappers.<EnterpriseTask>lambdaQuery().eq(EnterpriseTask::getPublisherId, userId);
-        if (StringUtils.hasText(status)) {
-            String targetStatus = status.trim().toUpperCase();
-            if (List.of("DRAFT", "PUBLISHED", "CLOSED").contains(targetStatus)) {
-                query.eq(EnterpriseTask::getStatus, targetStatus);
-            }
+    public List<TaskDtos.TaskCard> market(int page, int size, TaskDtos.ListQuery query) {
+        String targetStatus = normalizeStatus(query, true);
+        var wrapper = Wrappers.<EnterpriseTask>lambdaQuery();
+        if (StringUtils.hasText(targetStatus)) {
+            wrapper.eq(EnterpriseTask::getStatus, targetStatus);
+        } else {
+            wrapper.in(EnterpriseTask::getStatus, List.of("PUBLISHED", "CLOSED"));
         }
-        Page<EnterpriseTask> result = taskMapper.selectPage(page(page, size), query.orderByDesc(EnterpriseTask::getUpdatedAt));
-        return result.getRecords().stream().map(this::card).toList();
+        return slice(filterAndSort(taskMapper.selectList(wrapper), query), page, size);
+    }
+
+    @Override
+    public List<TaskDtos.TaskCard> myTasks(Long userId, int page, int size, TaskDtos.ListQuery query) {
+        String targetStatus = normalizeStatus(query, false);
+        var wrapper = Wrappers.<EnterpriseTask>lambdaQuery()
+                .eq(EnterpriseTask::getPublisherId, userId);
+        if (StringUtils.hasText(targetStatus)) {
+            wrapper.eq(EnterpriseTask::getStatus, targetStatus);
+        }
+        return slice(filterAndSort(taskMapper.selectList(wrapper), query), page, size);
     }
 
     @Override
@@ -131,6 +158,8 @@ public class EnterpriseTaskServiceImpl implements EnterpriseTaskService {
         submission.setRewardPoints(task.getBudgetPoints() == null ? BigDecimal.ZERO : task.getBudgetPoints());
         submission.setCreatedAt(LocalDateTime.now());
         submissionMapper.insert(submission);
+        notifyTaskWatchers(task, userId, Set.of(task.getPublisherId()), "TASK_SUBMISSION_CREATED", "任务收到新投稿",
+                "作品《" + artwork.getTitle() + "》已投稿到任务《" + task.getTitle() + "》。");
         return submissionView(submission);
     }
 
@@ -179,7 +208,20 @@ public class EnterpriseTaskServiceImpl implements EnterpriseTaskService {
             }
         }
         submissionMapper.updateById(submission);
+        String reviewLabel = "APPROVED".equals(status) ? "已通过" : "已拒绝";
+        notifyTaskWatchers(task, userId, Set.of(submission.getSubmitterId()), "TASK_SUBMISSION_REVIEWED", "任务投稿已审核",
+                "你投向《" + task.getTitle() + "》的作品已" + reviewLabel + "。");
         return submissionView(submission);
+    }
+
+    private void notifyTaskWatchers(EnterpriseTask task, Long actorUserId, Set<Long> extraUserIds, String type,
+                                    String title, String content) {
+        Set<Long> userIds = new LinkedHashSet<>();
+        if (extraUserIds != null) {
+            userIds.addAll(extraUserIds);
+        }
+        userIds.addAll(userEngagementService.subscriptionUserIds("TASK", task.getId()));
+        userEngagementService.notifyUsers(userIds, actorUserId, type, title, content, "TASK", task.getId());
     }
 
     private EnterpriseTask requireOwned(Long userId, Long taskId) {
@@ -194,6 +236,120 @@ public class EnterpriseTaskServiceImpl implements EnterpriseTaskService {
 
     private <T> Page<T> page(int page, int size) {
         return new Page<>(Math.max(1, page), Math.min(Math.max(1, size), 30));
+    }
+
+    private List<TaskDtos.TaskCard> filterAndSort(List<EnterpriseTask> tasks, TaskDtos.ListQuery query) {
+        String keyword = normalizeKeyword(query);
+        String tier = normalizeTier(query);
+        Comparator<TaskDtos.TaskCard> comparator = taskComparator(query);
+
+        return tasks.stream()
+                .map(this::card)
+                .filter(card -> matchesKeyword(card, keyword))
+                .filter(card -> matchesTier(card, tier))
+                .sorted(comparator)
+                .toList();
+    }
+
+    private List<TaskDtos.TaskCard> slice(List<TaskDtos.TaskCard> cards, int page, int size) {
+        int normalizedPage = Math.max(1, page);
+        int normalizedSize = Math.min(Math.max(1, size), 30);
+        int fromIndex = (normalizedPage - 1) * normalizedSize;
+        if (fromIndex >= cards.size()) {
+            return List.of();
+        }
+        int toIndex = Math.min(cards.size(), fromIndex + normalizedSize);
+        return cards.subList(fromIndex, toIndex);
+    }
+
+    private boolean matchesKeyword(TaskDtos.TaskCard card, String keyword) {
+        if (!StringUtils.hasText(keyword)) {
+            return true;
+        }
+        String haystack = String.join(" ",
+                card.title() == null ? "" : card.title(),
+                card.description() == null ? "" : card.description(),
+                card.requirementsText() == null ? "" : card.requirementsText()
+        ).toLowerCase();
+        return haystack.contains(keyword);
+    }
+
+    private boolean matchesTier(TaskDtos.TaskCard card, String tier) {
+        if (!StringUtils.hasText(tier)) {
+            return true;
+        }
+        BigDecimal budget = card.budgetPoints() == null ? BigDecimal.ZERO : card.budgetPoints();
+        return switch (tier) {
+            case "premium" -> budget.compareTo(BigDecimal.valueOf(200)) >= 0;
+            case "featured" -> budget.compareTo(BigDecimal.valueOf(80)) >= 0
+                    && budget.compareTo(BigDecimal.valueOf(200)) < 0;
+            case "standard" -> budget.compareTo(BigDecimal.valueOf(80)) < 0;
+            default -> true;
+        };
+    }
+
+    private Comparator<TaskDtos.TaskCard> taskComparator(TaskDtos.ListQuery query) {
+        String sort = normalizeSort(query);
+        return switch (sort) {
+            case "budget" -> Comparator
+                    .comparing(
+                            (TaskDtos.TaskCard card) -> card.budgetPoints() == null ? BigDecimal.ZERO : card.budgetPoints(),
+                            BigDecimal::compareTo
+                    )
+                    .reversed()
+                    .thenComparing(
+                            card -> card.updatedAt() == null ? LocalDateTime.MIN : card.updatedAt(),
+                            Comparator.reverseOrder()
+                    );
+            case "submissions" -> Comparator.comparingLong(TaskDtos.TaskCard::submissionCount)
+                    .reversed()
+                    .thenComparing(
+                            card -> card.updatedAt() == null ? LocalDateTime.MIN : card.updatedAt(),
+                            Comparator.reverseOrder()
+                    );
+            case "deadline" -> Comparator
+                    .comparing((TaskDtos.TaskCard card) -> card.deadline() == null ? LocalDateTime.MAX : card.deadline())
+                    .thenComparing(
+                            card -> card.updatedAt() == null ? LocalDateTime.MIN : card.updatedAt(),
+                            Comparator.reverseOrder()
+                    );
+            default -> Comparator.comparing(
+                    (TaskDtos.TaskCard card) -> card.updatedAt() == null ? LocalDateTime.MIN : card.updatedAt(),
+                    Comparator.reverseOrder()
+            );
+        };
+    }
+
+    private String normalizeKeyword(TaskDtos.ListQuery query) {
+        if (query == null || !StringUtils.hasText(query.keyword())) {
+            return "";
+        }
+        return query.keyword().trim().toLowerCase();
+    }
+
+    private String normalizeStatus(TaskDtos.ListQuery query, boolean market) {
+        if (query == null || !StringUtils.hasText(query.status())) {
+            return "";
+        }
+        String value = query.status().trim().toUpperCase();
+        List<String> allowed = market ? List.of("PUBLISHED", "CLOSED") : List.of("DRAFT", "PUBLISHED", "CLOSED");
+        return allowed.contains(value) ? value : "";
+    }
+
+    private String normalizeTier(TaskDtos.ListQuery query) {
+        if (query == null || !StringUtils.hasText(query.tier())) {
+            return "";
+        }
+        String value = query.tier().trim().toLowerCase();
+        return List.of("standard", "featured", "premium").contains(value) ? value : "";
+    }
+
+    private String normalizeSort(TaskDtos.ListQuery query) {
+        if (query == null || !StringUtils.hasText(query.sort())) {
+            return "latest";
+        }
+        String value = query.sort().trim().toLowerCase();
+        return List.of("latest", "budget", "submissions", "deadline").contains(value) ? value : "latest";
     }
 
     private void apply(EnterpriseTask task, TaskDtos.SaveRequest request) {

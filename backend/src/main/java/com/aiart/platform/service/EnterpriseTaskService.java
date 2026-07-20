@@ -13,9 +13,11 @@ public interface EnterpriseTaskService {
 
     TaskDtos.TaskCard close(Long userId, Long taskId);
 
-    List<TaskDtos.TaskCard> market(int page, int size, String status);
+    TaskDtos.TaskCard detail(Long viewerId, Long taskId);
 
-    List<TaskDtos.TaskCard> myTasks(Long userId, int page, int size, String status);
+    List<TaskDtos.TaskCard> market(int page, int size, TaskDtos.ListQuery query);
+
+    List<TaskDtos.TaskCard> myTasks(Long userId, int page, int size, TaskDtos.ListQuery query);
 
     TaskDtos.SubmissionView submit(Long userId, Long taskId, TaskDtos.SubmitRequest request);
 

@@ -15,6 +15,8 @@ public class Tag {
     private Long id;
     private Long categoryId;
     private String name;
+    private String displayNameZh;
+    private String descriptionZh;
     private String promptText;
     private String negativePromptText;
     private String previewImageUrl;

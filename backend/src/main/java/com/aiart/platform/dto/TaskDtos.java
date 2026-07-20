@@ -26,6 +26,9 @@ public final class TaskDtos {
                                 @DecimalMin("0.0") BigDecimal rewardPoints) {
     }
 
+    public record ListQuery(String keyword, String status, String tier, String sort) {
+    }
+
     public record TaskCard(Long id, Long publisherId, String title, String description, String requirementsText,
                            BigDecimal budgetPoints, String status, LocalDateTime deadline,
                            long submissionCount, LocalDateTime createdAt, LocalDateTime updatedAt) {

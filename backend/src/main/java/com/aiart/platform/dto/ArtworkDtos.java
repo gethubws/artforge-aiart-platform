@@ -17,6 +17,9 @@ public final class ArtworkDtos {
                               List<TagSummary> tags) {
     }
 
+    public record ArtworkPage(List<ArtworkCard> items, long page, long size, long total, boolean hasNext) {
+    }
+
     public record ArtworkDetail(Long id, String title, String imageUrl, String promptText, String negativePrompt,
                                 String generationParamsJson, String visibility, String status, LocalDateTime createdAt,
                                 List<TagSummary> tags) {

@@ -113,6 +113,7 @@
         :query-state="communityQuery"
         :selectable-tags="flatTags"
         :public-artworks="publicArtworks"
+        :loading="communityLoading"
         :format-date="formatDate"
         :is-favorite-target="isFavoriteTarget"
         @refresh="loadCommunity($event)"
@@ -660,6 +661,9 @@ const myArtworks = ref([])
 const publicArtworks = ref([])
 const selectedArtworkIds = ref(new Set())
 const libraryBatchLoading = ref(false)
+const communityLoading = ref(false)
+const libraryRequestId = ref(0)
+const communityRequestId = ref(0)
 
 const styleLoading = ref(false)
 const myStylePackages = ref([])
@@ -670,6 +674,8 @@ const stylePackageVersions = ref([])
 const stylePackageReviews = ref([])
 const styleSubmissions = ref([])
 const myStylePackageSubmissions = ref([])
+const styleRequestIds = { market: 0, my: 0 }
+const styleLoadingRequestId = ref(0)
 const activeStylePackageName = ref('')
 const styleForm = reactive({
   id: null,
@@ -1437,24 +1443,38 @@ function artworkQueryParams(query, includeVisibility = true) {
 }
 
 async function loadMyArtworks(query) {
+  const requestId = ++libraryRequestId.value
+  libraryBatchLoading.value = true
   try {
     if (query) Object.assign(libraryQuery, normalizeArtworkQuery(query))
-    myArtworks.value = (await getMyArtworks(artworkQueryParams(libraryQuery, true))) || []
-    libraryQuery.hasNext = myArtworks.value.length >= libraryQuery.size
-  } catch {
-    myArtworks.value = []
-    libraryQuery.hasNext = false
+    const result = await getMyArtworks(artworkQueryParams(libraryQuery, true))
+    if (requestId !== libraryRequestId.value) return
+    myArtworks.value = result?.items || []
+    libraryQuery.hasNext = Boolean(result?.hasNext)
+  } catch (error) {
+    if (requestId === libraryRequestId.value && !myArtworks.value.length) {
+      ElMessage.error(error?.message || '作品库加载失败')
+    }
+  } finally {
+    if (requestId === libraryRequestId.value) libraryBatchLoading.value = false
   }
 }
 
 async function loadCommunity(query) {
+  const requestId = ++communityRequestId.value
+  communityLoading.value = true
   try {
     if (query) Object.assign(communityQuery, normalizeArtworkQuery(query))
-    publicArtworks.value = (await getPublicArtworks(artworkQueryParams(communityQuery, false))) || []
-    communityQuery.hasNext = publicArtworks.value.length >= communityQuery.size
-  } catch {
-    publicArtworks.value = []
-    communityQuery.hasNext = false
+    const result = await getPublicArtworks(artworkQueryParams(communityQuery, false))
+    if (requestId !== communityRequestId.value) return
+    publicArtworks.value = result?.items || []
+    communityQuery.hasNext = Boolean(result?.hasNext)
+  } catch (error) {
+    if (requestId === communityRequestId.value && !publicArtworks.value.length) {
+      ElMessage.error(error?.message || '作品广场加载失败')
+    }
+  } finally {
+    if (requestId === communityRequestId.value) communityLoading.value = false
   }
 }
 
@@ -1483,6 +1503,7 @@ function styleQueryParams(query) {
 }
 
 async function loadStylePackages(options = {}) {
+  const loadingRequestId = ++styleLoadingRequestId.value
   styleLoading.value = true
   try {
     const scope = options.scope || 'all'
@@ -1490,27 +1511,40 @@ async function loadStylePackages(options = {}) {
     if (scope === 'my' && options.query) Object.assign(myStyleQuery, normalizeStyleQuery(options.query))
 
     if (scope === 'market') {
-      marketStylePackages.value = (await getMarketStylePackages(styleQueryParams(styleMarketQuery))) || []
-      styleMarketQuery.hasNext = marketStylePackages.value.length >= styleMarketQuery.size
+      const requestId = ++styleRequestIds.market
+      const result = await getMarketStylePackages(styleQueryParams(styleMarketQuery))
+      if (requestId !== styleRequestIds.market) return
+      marketStylePackages.value = result?.items || []
+      styleMarketQuery.hasNext = Boolean(result?.hasNext)
       return
     }
 
     if (scope === 'my') {
-      myStylePackages.value = (await getMyStylePackages(styleQueryParams(myStyleQuery))) || []
-      myStyleQuery.hasNext = myStylePackages.value.length >= myStyleQuery.size
+      const requestId = ++styleRequestIds.my
+      const result = await getMyStylePackages(styleQueryParams(myStyleQuery))
+      if (requestId !== styleRequestIds.my) return
+      myStylePackages.value = result?.items || []
+      myStyleQuery.hasNext = Boolean(result?.hasNext)
       return
     }
 
+    const marketRequestId = ++styleRequestIds.market
+    const myRequestId = ++styleRequestIds.my
     const [mine, market] = await Promise.all([
       getMyStylePackages(styleQueryParams(myStyleQuery)),
       getMarketStylePackages(styleQueryParams(styleMarketQuery))
     ])
-    myStylePackages.value = mine || []
-    marketStylePackages.value = market || []
-    myStyleQuery.hasNext = myStylePackages.value.length >= myStyleQuery.size
-    styleMarketQuery.hasNext = marketStylePackages.value.length >= styleMarketQuery.size
+    if (marketRequestId !== styleRequestIds.market || myRequestId !== styleRequestIds.my) return
+    myStylePackages.value = mine?.items || []
+    marketStylePackages.value = market?.items || []
+    myStyleQuery.hasNext = Boolean(mine?.hasNext)
+    styleMarketQuery.hasNext = Boolean(market?.hasNext)
+  } catch (error) {
+    if (loadingRequestId === styleLoadingRequestId.value && !myStylePackages.value.length && !marketStylePackages.value.length) {
+      ElMessage.error(error?.message || '风格包加载失败')
+    }
   } finally {
-    styleLoading.value = false
+    if (loadingRequestId === styleLoadingRequestId.value) styleLoading.value = false
   }
 }
 

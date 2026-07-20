@@ -1,5 +1,5 @@
 <template>
-  <section class="community-view content-hub-page market-page-shell">
+  <section class="community-view content-hub-page market-page-shell" v-loading="loading">
     <header class="page-hero hub-hero">
       <div class="hero-copy">
         <p class="eyebrow">Community</p>
@@ -85,6 +85,7 @@ const props = defineProps({
   queryState: { type: Object, required: true },
   selectableTags: { type: Array, default: () => [] },
   publicArtworks: { type: Array, default: () => [] },
+  loading: { type: Boolean, default: false },
   formatDate: { type: Function, required: true },
   isFavoriteTarget: { type: Function, default: null }
 })
@@ -95,6 +96,27 @@ const keyword = ref(props.queryState.keyword || '')
 const selectedTags = ref([...(props.queryState.tagIds || [])])
 const currentPage = ref(props.queryState.page || 1)
 const pageSize = ref(props.queryState.size || 12)
+let queryTimer = null
+let lastEmittedQueryKey = ''
+
+function queryKey(query) {
+  return JSON.stringify({
+    keyword: query.keyword || '',
+    tagIds: [...(query.tagIds || [])].map(Number).sort((a, b) => a - b),
+    page: Number(query.page) || 1,
+    size: Number(query.size) || 12
+  })
+}
+
+function emitRefresh(query) {
+  lastEmittedQueryKey = queryKey(query)
+  emit('refresh', query)
+}
+
+function sameTags(left = [], right = []) {
+  if (left.length !== right.length) return false
+  return left.every((value, index) => Number(value) === Number(right[index]))
+}
 
 function tagLabel(tag) {
   return tag?.displayNameZh ? `${tag.displayNameZh} / ${tag.name}` : tag?.name || ''
@@ -112,35 +134,45 @@ function currentQuery() {
 function goPrevPage() {
   if (currentPage.value <= 1) return
   currentPage.value -= 1
-  emit('refresh', currentQuery())
+  emitRefresh(currentQuery())
 }
 
 function goNextPage() {
   if (!props.queryState.hasNext) return
   currentPage.value += 1
-  emit('refresh', currentQuery())
+  emitRefresh(currentQuery())
 }
 
 function updatePageSize(value) {
   pageSize.value = Number(value) || 12
   currentPage.value = 1
-  emit('refresh', currentQuery())
+  emitRefresh(currentQuery())
 }
 
 watch(
   () => props.queryState,
   (value) => {
-    keyword.value = value?.keyword || ''
-    selectedTags.value = [...(value?.tagIds || [])]
-    currentPage.value = value?.page || 1
-    pageSize.value = value?.size || 12
+    const nextKeyword = value?.keyword || ''
+    const nextTags = [...(value?.tagIds || [])]
+    const nextPage = value?.page || 1
+    const nextSize = value?.size || 12
+    if (keyword.value !== nextKeyword) keyword.value = nextKeyword
+    if (!sameTags(selectedTags.value, nextTags)) selectedTags.value = nextTags
+    if (currentPage.value !== nextPage) currentPage.value = nextPage
+    if (pageSize.value !== nextSize) pageSize.value = nextSize
+    lastEmittedQueryKey = queryKey(value || {})
   },
   { deep: true }
 )
 
 watch([keyword, selectedTags], () => {
-  currentPage.value = 1
-  emit('refresh', currentQuery())
+  window.clearTimeout(queryTimer)
+  queryTimer = window.setTimeout(() => {
+    currentPage.value = 1
+    const query = currentQuery()
+    if (queryKey(query) === lastEmittedQueryKey) return
+    emitRefresh(query)
+  }, 260)
 }, { deep: true })
 </script>
 

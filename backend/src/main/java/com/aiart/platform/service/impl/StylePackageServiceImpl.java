@@ -168,7 +168,7 @@ public class StylePackageServiceImpl implements StylePackageService {
     }
 
     @Override
-    public List<StylePackageDtos.Card> myPackages(Long userId, StylePackageDtos.ListQuery query, int page, int size) {
+    public StylePackageDtos.PackagePage myPackages(Long userId, StylePackageDtos.ListQuery query, int page, int size) {
         List<StylePackage> packages = stylePackageMapper.selectList(Wrappers.<StylePackage>lambdaQuery()
                 .eq(StylePackage::getUserId, userId)
                 .orderByDesc(StylePackage::getUpdatedAt));
@@ -179,7 +179,7 @@ public class StylePackageServiceImpl implements StylePackageService {
     }
 
     @Override
-    public List<StylePackageDtos.Card> marketPackages(Long viewerId, StylePackageDtos.ListQuery query, int page, int size) {
+    public StylePackageDtos.PackagePage marketPackages(Long viewerId, StylePackageDtos.ListQuery query, int page, int size) {
         List<StylePackage> packages = stylePackageMapper.selectList(Wrappers.<StylePackage>lambdaQuery()
                 .eq(StylePackage::getStatus, "PUBLISHED")
                 .orderByDesc(StylePackage::getUpdatedAt));
@@ -516,14 +516,19 @@ public class StylePackageServiceImpl implements StylePackageService {
         return result;
     }
 
-    private List<StylePackageDtos.Card> paginateCards(List<StylePackageDtos.Card> cards, StylePackageDtos.ListQuery query, int page, int size) {
+    private StylePackageDtos.PackagePage paginateCards(List<StylePackageDtos.Card> cards, StylePackageDtos.ListQuery query, int page, int size) {
         List<StylePackageDtos.Card> filtered = filterCards(cards, query);
         sortCards(filtered, query == null ? null : query.sort());
         int safePage = Math.max(1, page);
         int safeSize = Math.min(Math.max(1, size), 60);
         int fromIndex = Math.min((safePage - 1) * safeSize, filtered.size());
         int toIndex = Math.min(fromIndex + safeSize, filtered.size());
-        return filtered.subList(fromIndex, toIndex);
+        return new StylePackageDtos.PackagePage(
+                new ArrayList<>(filtered.subList(fromIndex, toIndex)),
+                safePage,
+                safeSize,
+                filtered.size(),
+                toIndex < filtered.size());
     }
 
     private List<StylePackageDtos.Card> filterCards(List<StylePackageDtos.Card> cards, StylePackageDtos.ListQuery query) {

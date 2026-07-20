@@ -73,6 +73,9 @@ public final class StylePackageDtos {
                        LocalDateTime createdAt, LocalDateTime updatedAt) {
     }
 
+    public record PackagePage(List<Card> items, int page, int size, long total, boolean hasNext) {
+    }
+
     public record Detail(Long id, String name, String description, String coverImageUrl,
                          String styleStatement, String promptGuide, String negativePromptGuide,
                          Long featuredArtworkId, BigDecimal pricePoints, String status, Long userId,

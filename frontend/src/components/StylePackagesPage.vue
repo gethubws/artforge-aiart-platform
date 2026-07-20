@@ -1,5 +1,5 @@
 <template>
-  <section class="style-view content-hub-page market-page-shell style-package-page">
+  <section class="style-view content-hub-page market-page-shell style-package-page" v-loading="styleLoading">
     <header class="page-hero hub-hero">
       <div class="hero-copy">
         <p class="eyebrow">Style Collection</p>
@@ -70,24 +70,30 @@
             <Bell />
           </button>
         </div>
-        <div class="style-pack-cover-grid">
-          <div class="style-pack-cover-main">
-            <img v-if="primaryImage(pack)" :src="primaryImage(pack)" :alt="pack.name" class="style-pack-cover-image" />
-            <div v-else class="style-pack-cover-fallback">
-              <Collection />
-            </div>
-            <span class="status-badge floating" :class="statusBadgeClass(pack.status)">
+        <div class="style-pack-preview" :class="`count-${Math.min(previewImages(pack).length, 5)}`">
+          <div
+            v-for="(preview, index) in previewImages(pack).slice(0, 5)"
+            :key="preview.key"
+            class="style-pack-preview-tile"
+            :class="{ featured: index === 0 }"
+          >
+            <img :src="preview.url" :alt="preview.title || pack.name" />
+            <span v-if="index === 0" class="status-badge floating" :class="statusBadgeClass(pack.status)">
               {{ statusText(pack.status) }}
             </span>
+            <span v-if="index === 4 && previewImages(pack).length > 5" class="style-pack-more-count">
+              +{{ previewImages(pack).length - 5 }} 张
+            </span>
           </div>
-          <div class="style-pack-cover-strip">
-            <div v-for="artwork in secondaryArtworks(pack)" :key="artwork.id" class="style-pack-thumb">
-              <img :src="artwork.imageUrl" :alt="artwork.title" />
-            </div>
-            <div v-if="!secondaryArtworks(pack).length" class="style-pack-thumb empty">
-              {{ artworkCount(pack) }} 图
-            </div>
+          <div v-if="!previewImages(pack).length" class="style-pack-cover-fallback">
+            <Collection />
           </div>
+        </div>
+
+        <div class="style-pack-preview-caption">
+          <span>{{ artworkCount(pack) }} 张已收录作品</span>
+          <span v-if="previewImages(pack).length > 1">共 {{ previewImages(pack).length }} 张预览</span>
+          <span v-else>等待更多共创作品</span>
         </div>
 
         <div class="style-pack-card-body">
@@ -163,19 +169,29 @@
 
             <div class="style-detail-layout">
               <div class="style-detail-gallery">
-                <img
-                  v-if="primaryImage(activePack)"
-                  :src="primaryImage(activePack)"
-                  :alt="activePack.name"
-                  class="style-pack-cover-image"
-                />
-                <div v-else class="style-pack-cover-fallback">
-                  <Collection />
-                </div>
-                <div v-if="activePack.artworks?.length" class="style-detail-thumbs">
-                  <div v-for="artwork in activePack.artworks.slice(0, 6)" :key="artwork.id" class="style-detail-thumb">
-                    <img :src="artwork.imageUrl" :alt="artwork.title" />
+                <div class="style-detail-main-preview">
+                  <img
+                    v-if="activePreviewUrl"
+                    :src="activePreviewUrl"
+                    :alt="activePack.name"
+                    class="style-pack-cover-image"
+                  />
+                  <div v-else class="style-pack-cover-fallback">
+                    <Collection />
                   </div>
+                  <span class="style-detail-image-count">{{ previewImages(activePack).length }} 张预览</span>
+                </div>
+                <div v-if="previewImages(activePack).length" class="style-detail-thumbs">
+                  <button
+                    v-for="preview in previewImages(activePack)"
+                    :key="preview.key"
+                    type="button"
+                    class="style-detail-thumb"
+                    :class="{ active: activePreviewId === preview.key }"
+                    @click="activePreviewId = preview.key"
+                  >
+                    <img :src="preview.url" :alt="preview.title || activePack.name" />
+                  </button>
                 </div>
               </div>
 
@@ -668,6 +684,7 @@ const sortMode = ref(props.queryState.sort || 'latest')
 const currentPage = ref(props.queryState.page || 1)
 const pageSize = ref(props.queryState.size || 8)
 const activePackId = ref(null)
+const activePreviewId = ref('')
 const packDrawerVisible = ref(false)
 const packEditorVisible = ref(false)
 const packSubmissionVisible = ref(false)
@@ -675,6 +692,8 @@ const packReviewVisible = ref(false)
 const ownerOpsVisible = ref(false)
 const collaboratorInput = ref('')
 const reviewDrafts = reactive({})
+let queryTimer = null
+let lastEmittedQueryKey = ''
 
 const marketSummary = '先看内容预览，再点开详情、投稿、评价或兑换。'
 const workspaceSummary = '主页面聚焦预览与筛选，编辑、发布、归档和投稿审核都收进弹层里处理。'
@@ -708,6 +727,11 @@ const activePack = computed(() => {
     || null
 })
 
+const activePreviewUrl = computed(() => {
+  const previews = previewImages(activePack.value)
+  return previews.find((preview) => preview.key === activePreviewId.value)?.url || previews[0]?.url || ''
+})
+
 const currentPackSubmissionHistory = computed(() => {
   return props.myStylePackageSubmissions.filter((item) => item.stylePackageId === activePackId.value)
 })
@@ -738,6 +762,21 @@ const currentQuery = () => ({
   page: currentPage.value,
   size: pageSize.value
 })
+
+const queryKey = (query) => JSON.stringify({
+  keyword: query?.keyword || '',
+  tagId: query?.tagId ?? null,
+  status: query?.status || '',
+  sort: query?.sort || 'latest',
+  page: Number(query?.page) || 1,
+  size: Number(query?.size) || 8
+})
+
+const emitRefresh = () => {
+  const query = currentQuery()
+  lastEmittedQueryKey = queryKey(query)
+  emit('refresh', query)
+}
 
 const statusText = (status) => {
   const labels = {
@@ -775,8 +814,23 @@ const statusBadgeClass = (status) => {
   return (status || '').toLowerCase()
 }
 
-const primaryImage = (pack) => pack?.coverImageUrl || pack?.artworks?.[0]?.imageUrl || ''
-const secondaryArtworks = (pack) => (pack?.artworks || []).slice(1, 4)
+const previewImages = (pack) => {
+  if (!pack) return []
+  const previews = []
+  const seen = new Set()
+  const add = (url, key, title) => {
+    if (!url || seen.has(url)) return
+    seen.add(url)
+    previews.push({ url, key, title })
+  }
+  add(pack.coverImageUrl, `cover-${pack.id}`, pack.name)
+  for (const artwork of pack.artworks || []) {
+    add(artwork.imageUrl, `artwork-${artwork.id}`, artwork.title)
+  }
+  return previews
+}
+
+const primaryImage = (pack) => previewImages(pack)[0]?.url || ''
 const artworkCount = (pack) => Number(pack?.stats?.approvedArtworkCount || pack?.artworks?.length || 0)
 const ownerText = (pack) => {
   if (pack?.owner) return '由你维护'
@@ -794,6 +848,7 @@ const reloadPackDetail = (pack) => {
 
 const openPackDrawer = (pack) => {
   activePackId.value = pack.id
+  activePreviewId.value = previewImages(pack)[0]?.key || ''
   packDrawerVisible.value = true
   reloadPackDetail(pack)
   if (!isMarketView.value) emit('load-submissions', pack)
@@ -882,19 +937,19 @@ const openOwnerOps = (pack) => {
 const goPrevPage = () => {
   if (currentPage.value <= 1) return
   currentPage.value -= 1
-  emit('refresh', currentQuery())
+  emitRefresh()
 }
 
 const goNextPage = () => {
   if (!props.queryState.hasNext) return
   currentPage.value += 1
-  emit('refresh', currentQuery())
+  emitRefresh()
 }
 
 const updatePageSize = (value) => {
   pageSize.value = Number(value) || 8
   currentPage.value = 1
-  emit('refresh', currentQuery())
+  emitRefresh()
 }
 
 watch(
@@ -913,13 +968,19 @@ watch(
     sortMode.value = value?.sort || 'latest'
     currentPage.value = value?.page || 1
     pageSize.value = value?.size || 8
+    lastEmittedQueryKey = queryKey(value || {})
   },
   { deep: true }
 )
 
 watch([keyword, selectedTagId, localStatus, sortMode], () => {
-  currentPage.value = 1
-  emit('refresh', currentQuery())
+  window.clearTimeout(queryTimer)
+  queryTimer = window.setTimeout(() => {
+    currentPage.value = 1
+    const query = currentQuery()
+    if (queryKey(query) === lastEmittedQueryKey) return
+    emitRefresh()
+  }, 260)
 })
 
 watch(

@@ -26,7 +26,7 @@ public class ArtworkController {
     private final CurrentUser currentUser;
 
     @GetMapping("/my")
-    public ApiResponse<List<ArtworkDtos.ArtworkCard>> my(
+    public ApiResponse<ArtworkDtos.ArtworkPage> my(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String keyword,
@@ -46,7 +46,7 @@ public class ArtworkController {
     }
 
     @GetMapping("/public")
-    public ApiResponse<List<ArtworkDtos.ArtworkCard>> publicArtworks(
+    public ApiResponse<ArtworkDtos.ArtworkPage> publicArtworks(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String keyword,

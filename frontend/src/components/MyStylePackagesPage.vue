@@ -23,7 +23,7 @@
     :focus-target-stamp="focusTargetStamp"
     initial-view="workspace"
     :allow-market="false"
-    @refresh="$emit('refresh')"
+    @refresh="$emit('refresh', $event)"
     @reset-form="$emit('reset-form')"
     @patch-style-form="$emit('patch-style-form', $event)"
     @save="$emit('save')"

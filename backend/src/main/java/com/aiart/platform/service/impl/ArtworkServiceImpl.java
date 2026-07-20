@@ -39,10 +39,10 @@ public class ArtworkServiceImpl implements ArtworkService {
     private final ContentAuditMapper contentAuditMapper;
 
     @Override
-    public List<ArtworkDtos.ArtworkCard> myArtworks(Long userId, int page, int size, String keyword, List<Long> tagIds, String visibility, String status) {
+    public ArtworkDtos.ArtworkPage myArtworks(Long userId, int page, int size, String keyword, List<Long> tagIds, String visibility, String status) {
         List<Long> artworkIds = artworkIdsForTags(tagIds);
         if (hasTagFilter(tagIds) && artworkIds.isEmpty()) {
-            return List.of();
+            return emptyPage(page, size);
         }
         var query = Wrappers.<Artwork>lambdaQuery()
                 .eq(Artwork::getUserId, userId);
@@ -57,14 +57,14 @@ public class ArtworkServiceImpl implements ArtworkService {
             query.eq(Artwork::getStatus, status.trim().toUpperCase());
         }
         Page<Artwork> result = artworkMapper.selectPage(page(page, size), query.orderByDesc(Artwork::getCreatedAt));
-        return cards(result.getRecords());
+        return artworkPage(result);
     }
 
     @Override
-    public List<ArtworkDtos.ArtworkCard> publicArtworks(int page, int size, String keyword, List<Long> tagIds) {
+    public ArtworkDtos.ArtworkPage publicArtworks(int page, int size, String keyword, List<Long> tagIds) {
         List<Long> artworkIds = artworkIdsForTags(tagIds);
         if (hasTagFilter(tagIds) && artworkIds.isEmpty()) {
-            return List.of();
+            return emptyPage(page, size);
         }
         var query = Wrappers.<Artwork>lambdaQuery()
                 .eq(Artwork::getVisibility, "PUBLIC")
@@ -74,7 +74,7 @@ public class ArtworkServiceImpl implements ArtworkService {
             query.in(Artwork::getId, artworkIds);
         }
         Page<Artwork> result = artworkMapper.selectPage(page(page, size), query.orderByDesc(Artwork::getCreatedAt));
-        return cards(result.getRecords());
+        return artworkPage(result);
     }
 
     @Override
@@ -204,6 +204,20 @@ public class ArtworkServiceImpl implements ArtworkService {
                 artwork.getStatus(),
                 artwork.getCreatedAt(),
                 tagsByArtwork(List.of(artworkId)).getOrDefault(artworkId, List.of()));
+    }
+
+    private ArtworkDtos.ArtworkPage artworkPage(Page<Artwork> result) {
+        return new ArtworkDtos.ArtworkPage(
+                cards(result.getRecords()),
+                result.getCurrent(),
+                result.getSize(),
+                result.getTotal(),
+                result.getCurrent() * result.getSize() < result.getTotal());
+    }
+
+    private ArtworkDtos.ArtworkPage emptyPage(int page, int size) {
+        Page<Artwork> empty = page(page, size);
+        return new ArtworkDtos.ArtworkPage(List.of(), empty.getCurrent(), empty.getSize(), 0, false);
     }
 
     private Page<Artwork> page(int page, int size) {

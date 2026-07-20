@@ -108,7 +108,7 @@ public class StylePackageController {
     }
 
     @GetMapping("/my")
-    public ApiResponse<List<StylePackageDtos.Card>> myPackages(@RequestParam(defaultValue = "1") int page,
+    public ApiResponse<StylePackageDtos.PackagePage> myPackages(@RequestParam(defaultValue = "1") int page,
                                                                @RequestParam(required = false) String keyword,
                                                                @RequestParam(required = false) Long tagId,
                                                                @RequestParam(required = false) String status,
@@ -122,7 +122,7 @@ public class StylePackageController {
     }
 
     @GetMapping("/market")
-    public ApiResponse<List<StylePackageDtos.Card>> marketPackages(@RequestParam(defaultValue = "1") int page,
+    public ApiResponse<StylePackageDtos.PackagePage> marketPackages(@RequestParam(defaultValue = "1") int page,
                                                                    @RequestParam(required = false) String keyword,
                                                                    @RequestParam(required = false) Long tagId,
                                                                    @RequestParam(required = false) String status,

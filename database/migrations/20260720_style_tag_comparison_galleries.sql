@@ -1,0 +1,38 @@
+USE aiart_codex_platform;
+
+INSERT IGNORE INTO tag_preview
+  (id, tag_id, image_url, preview_type, scene_key, title_zh, prompt_snapshot, sort_order, is_cover)
+VALUES
+  (2001002, 2001, '/images/tags/gallery/cinematic/character.webp', 'COMPARISON', 'CHARACTER', '人物对比', 'cinematic style', 10, 0),
+  (2001003, 2001, '/images/tags/gallery/cinematic/landscape.webp', 'COMPARISON', 'LANDSCAPE', '风景对比', 'cinematic style', 20, 0),
+  (2001004, 2001, '/images/tags/gallery/cinematic/object.webp', 'COMPARISON', 'OBJECT', '物品对比', 'cinematic style', 30, 0),
+  (2002002, 2002, '/images/tags/gallery/watercolor/character.webp', 'COMPARISON', 'CHARACTER', '人物对比', 'watercolor illustration', 10, 0),
+  (2002003, 2002, '/images/tags/gallery/watercolor/landscape.webp', 'COMPARISON', 'LANDSCAPE', '风景对比', 'watercolor illustration', 20, 0),
+  (2002004, 2002, '/images/tags/gallery/watercolor/object.webp', 'COMPARISON', 'OBJECT', '物品对比', 'watercolor illustration', 30, 0),
+  (2003002, 2003, '/images/tags/gallery/cyberpunk/character.webp', 'COMPARISON', 'CHARACTER', '人物对比', 'cyberpunk aesthetic', 10, 0),
+  (2003003, 2003, '/images/tags/gallery/cyberpunk/landscape.webp', 'COMPARISON', 'LANDSCAPE', '风景对比', 'cyberpunk aesthetic', 20, 0),
+  (2003004, 2003, '/images/tags/gallery/cyberpunk/object.webp', 'COMPARISON', 'OBJECT', '物品对比', 'cyberpunk aesthetic', 30, 0),
+  (2011002, 2011, '/images/tags/gallery/anime/character.webp', 'COMPARISON', 'CHARACTER', '人物对比', 'anime style', 10, 0),
+  (2011003, 2011, '/images/tags/gallery/anime/landscape.webp', 'COMPARISON', 'LANDSCAPE', '风景对比', 'anime style', 20, 0),
+  (2011004, 2011, '/images/tags/gallery/anime/object.webp', 'COMPARISON', 'OBJECT', '物品对比', 'anime style', 30, 0),
+  (2012002, 2012, '/images/tags/gallery/oil-painting/character.webp', 'COMPARISON', 'CHARACTER', '人物对比', 'traditional oil painting', 10, 0),
+  (2012003, 2012, '/images/tags/gallery/oil-painting/landscape.webp', 'COMPARISON', 'LANDSCAPE', '风景对比', 'traditional oil painting', 20, 0),
+  (2012004, 2012, '/images/tags/gallery/oil-painting/object.webp', 'COMPARISON', 'OBJECT', '物品对比', 'traditional oil painting', 30, 0),
+  (2013002, 2013, '/images/tags/gallery/ink-wash/character.webp', 'COMPARISON', 'CHARACTER', '人物对比', 'Chinese ink wash painting', 10, 0),
+  (2013003, 2013, '/images/tags/gallery/ink-wash/landscape.webp', 'COMPARISON', 'LANDSCAPE', '风景对比', 'Chinese ink wash painting', 20, 0),
+  (2013004, 2013, '/images/tags/gallery/ink-wash/object.webp', 'COMPARISON', 'OBJECT', '物品对比', 'Chinese ink wash painting', 30, 0),
+  (2014002, 2014, '/images/tags/gallery/pixel-art/character.webp', 'COMPARISON', 'CHARACTER', '人物对比', 'polished pixel art', 10, 0),
+  (2014003, 2014, '/images/tags/gallery/pixel-art/landscape.webp', 'COMPARISON', 'LANDSCAPE', '风景对比', 'polished pixel art', 20, 0),
+  (2014004, 2014, '/images/tags/gallery/pixel-art/object.webp', 'COMPARISON', 'OBJECT', '物品对比', 'polished pixel art', 30, 0),
+  (2015002, 2015, '/images/tags/gallery/3d-render/character.webp', 'COMPARISON', 'CHARACTER', '人物对比', 'premium 3D render', 10, 0),
+  (2015003, 2015, '/images/tags/gallery/3d-render/landscape.webp', 'COMPARISON', 'LANDSCAPE', '风景对比', 'premium 3D render', 20, 0),
+  (2015004, 2015, '/images/tags/gallery/3d-render/object.webp', 'COMPARISON', 'OBJECT', '物品对比', 'premium 3D render', 30, 0),
+  (2016002, 2016, '/images/tags/gallery/fantasy-art/character.webp', 'COMPARISON', 'CHARACTER', '人物对比', 'fantasy art', 10, 0),
+  (2016003, 2016, '/images/tags/gallery/fantasy-art/landscape.webp', 'COMPARISON', 'LANDSCAPE', '风景对比', 'fantasy art', 20, 0),
+  (2016004, 2016, '/images/tags/gallery/fantasy-art/object.webp', 'COMPARISON', 'OBJECT', '物品对比', 'fantasy art', 30, 0),
+  (2017002, 2017, '/images/tags/gallery/photorealistic/character.webp', 'COMPARISON', 'CHARACTER', '人物对比', 'photorealistic', 10, 0),
+  (2017003, 2017, '/images/tags/gallery/photorealistic/landscape.webp', 'COMPARISON', 'LANDSCAPE', '风景对比', 'photorealistic', 20, 0),
+  (2017004, 2017, '/images/tags/gallery/photorealistic/object.webp', 'COMPARISON', 'OBJECT', '物品对比', 'photorealistic', 30, 0),
+  (2018002, 2018, '/images/tags/gallery/minimalist/character.webp', 'COMPARISON', 'CHARACTER', '人物对比', 'minimalist composition', 10, 0),
+  (2018003, 2018, '/images/tags/gallery/minimalist/landscape.webp', 'COMPARISON', 'LANDSCAPE', '风景对比', 'minimalist composition', 20, 0),
+  (2018004, 2018, '/images/tags/gallery/minimalist/object.webp', 'COMPARISON', 'OBJECT', '物品对比', 'minimalist composition', 30, 0);

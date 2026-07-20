@@ -9,6 +9,26 @@
           loading="lazy"
         />
         <div v-else class="tag-preview-empty">{{ loading ? '正在加载预览...' : '预览图待补充' }}</div>
+        <template v-if="previews.length > 1">
+          <button
+            class="tag-preview-nav previous"
+            type="button"
+            aria-label="上一张预览"
+            title="上一张预览"
+            @click="shiftPreview(-1)"
+          >
+            <el-icon><ArrowLeft /></el-icon>
+          </button>
+          <button
+            class="tag-preview-nav next"
+            type="button"
+            aria-label="下一张预览"
+            title="下一张预览"
+            @click="shiftPreview(1)"
+          >
+            <el-icon><ArrowRight /></el-icon>
+          </button>
+        </template>
       </div>
       <div v-if="previews.length > 1" class="tag-preview-thumbnails" aria-label="标签预览图库">
         <button
@@ -56,6 +76,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 import { getTagDetail } from '../api/tags'
 import BilingualTagLabel from './BilingualTagLabel.vue'
 
@@ -91,6 +112,11 @@ const sceneNames = {
 
 function sceneLabel(sceneKey) {
   return sceneNames[sceneKey] || '效果示例'
+}
+
+function shiftPreview(offset) {
+  if (previews.value.length < 2) return
+  activeIndex.value = (activeIndex.value + offset + previews.value.length) % previews.value.length
 }
 
 async function loadDetail(tagId) {

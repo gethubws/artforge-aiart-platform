@@ -318,11 +318,15 @@
 
       <AdminPage
         v-else-if="activeView === 'admin'"
+        :current-user="currentUser"
         :audit-loading="auditLoading"
         :tag-admin-loading="tagAdminLoading"
         :admin-dashboard-loading="adminDashboardLoading"
         :admin-dashboard="adminDashboard"
         :tag-analytics="tagAnalytics"
+        :admin-user-loading="adminUserLoading"
+        :admin-user-page="adminUserPage"
+        :admin-user-query="adminUserQuery"
         :category-form="categoryForm"
         :tag-form="tagForm"
         :admin-tag-tree="adminTagTree"
@@ -340,6 +344,11 @@
         :format-points="formatPoints"
         :status-label="statusLabel"
         @refresh="refreshAdminData"
+        @load-admin-users="loadAdminUsers"
+        @search-admin-users="searchAdminUsers"
+        @change-admin-user-page="changeAdminUserPage"
+        @save-admin-user="saveAdminUser"
+        @navigate-platform="activateView"
         @save-tag-category="saveTagCategory"
         @reset-tag-form="resetTagForm"
         @save-tag-item="saveTagItem"
@@ -474,7 +483,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, defineAsyncComponent, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import AppTopbar from './components/AppTopbar.vue'
@@ -486,7 +495,6 @@ import MyStylePackagesPage from './components/MyStylePackagesPage.vue'
 import TaskMarketPage from './components/TaskMarketPage.vue'
 import MyTasksPage from './components/MyTasksPage.vue'
 import ModelsPage from './components/ModelsPage.vue'
-import AdminPage from './components/AdminPage.vue'
 import AccountPage from './components/AccountPage.vue'
 import PromptBuilderExpanded from './components/PromptBuilderExpanded.vue'
 import { useAuthStore } from './stores/auth'
@@ -563,7 +571,7 @@ import {
   updateTask
 } from './api/tasks'
 import { claimDailyPoints, getPointAccount } from './api/points'
-import { getAdminDashboard } from './api/admin'
+import { getAdminDashboard, getAdminUsers, updateAdminUser } from './api/admin'
 import { getMyAudits, getPendingAudits, reviewAudit } from './api/audits'
 import {
   getFavoriteTargets,
@@ -574,6 +582,8 @@ import {
   toggleFavoriteTarget as toggleFavoriteTargetApi,
   toggleSubscriptionTarget as toggleSubscriptionTargetApi
 } from './api/engagement'
+
+const AdminPage = defineAsyncComponent(() => import('./components/AdminPage.vue'))
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -730,6 +740,9 @@ const tagAdminLoading = ref(false)
 const adminDashboardLoading = ref(false)
 const adminDashboard = ref(null)
 const tagAnalytics = ref({ topTags: [], topCombinations: [], searchKeywords: [] })
+const adminUserLoading = ref(false)
+const adminUserPage = ref({ items: [], page: 1, size: 20, total: 0, pages: 0 })
+const adminUserQuery = reactive({ keyword: '', role: '', status: '', page: 1, size: 20 })
 const adminTagTree = ref([])
 const pendingAudits = ref([])
 const myAudits = ref([])
@@ -2046,12 +2059,13 @@ async function refreshAdminData() {
   auditLoading.value = true
   adminDashboardLoading.value = true
   try {
-    const [dashboard, pending, mine, adminTags, analytics] = await Promise.all([
+    const [dashboard, pending, mine, adminTags, analytics, users] = await Promise.all([
       getAdminDashboard(),
       getPendingAudits(),
       getMyAudits(),
       getAdminTagTree(),
-      getTagAnalytics()
+      getTagAnalytics(),
+      getAdminUsers(adminUserQuery)
     ])
     adminDashboard.value = normalizeDashboard(dashboard)
     pendingAudits.value = pending || []
@@ -2062,6 +2076,7 @@ async function refreshAdminData() {
       topCombinations: analytics?.topCombinations || [],
       searchKeywords: analytics?.searchKeywords || []
     }
+    adminUserPage.value = normalizeAdminUserPage(users)
   } finally {
     auditLoading.value = false
     adminDashboardLoading.value = false
@@ -2073,10 +2088,10 @@ function normalizeDashboard(dashboard) {
   return {
     ...dashboard,
     metrics: dashboard.metrics || [],
-    generationStatus: dashboard.generationStatus || {},
-    auditStatus: dashboard.auditStatus || {},
-    taskStatus: dashboard.taskStatus || {},
-    styleStatus: dashboard.styleStatus || {},
+    generationStatus: dashboard.generationStatus || [],
+    auditStatus: dashboard.auditStatus || [],
+    taskStatus: dashboard.taskStatus || [],
+    styleStatus: dashboard.styleStatus || [],
     dailyGenerations: dashboard.dailyGenerations || [],
     dailyArtworks: dashboard.dailyArtworks || [],
     pointFlows: dashboard.pointFlows || [],
@@ -2096,6 +2111,55 @@ function statusCountText(data) {
     .filter(([key]) => key)
     .map(([key, value]) => `${statusLabel(key)} ${Number(value || 0)}`)
     .join(' · ') || '暂无数据'
+}
+
+function normalizeAdminUserPage(data) {
+  return {
+    items: data?.items || [],
+    page: Number(data?.page || 1),
+    size: Number(data?.size || adminUserQuery.size),
+    total: Number(data?.total || 0),
+    pages: Number(data?.pages || 0)
+  }
+}
+
+async function loadAdminUsers() {
+  if (currentUser.value?.role !== 'ADMIN' || adminUserLoading.value) return
+  adminUserLoading.value = true
+  try {
+    adminUserPage.value = normalizeAdminUserPage(await getAdminUsers(adminUserQuery))
+  } catch (error) {
+    ElMessage.error(error?.message || '加载用户列表失败')
+  } finally {
+    adminUserLoading.value = false
+  }
+}
+
+async function searchAdminUsers() {
+  adminUserQuery.page = 1
+  await loadAdminUsers()
+}
+
+async function changeAdminUserPage(page) {
+  adminUserQuery.page = page
+  await loadAdminUsers()
+}
+
+async function saveAdminUser({ id, payload, done }) {
+  adminUserLoading.value = true
+  try {
+    const updated = await updateAdminUser(id, payload)
+    if (currentUser.value?.id === id && updated?.displayName) {
+      auth.currentUser.value = { ...auth.currentUser.value, displayName: updated.displayName, role: updated.role }
+    }
+    ElMessage.success('用户信息已更新')
+    done?.()
+    await refreshAdminData()
+  } catch (error) {
+    ElMessage.error(error?.message || '更新用户失败')
+  } finally {
+    adminUserLoading.value = false
+  }
 }
 
 async function saveTagCategory() {

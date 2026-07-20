@@ -1,5 +1,7 @@
 package com.aiart.platform.security;
 
+import com.aiart.platform.entity.User;
+import com.aiart.platform.mapper.UserMapper;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -19,6 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
+    private final UserMapper userMapper;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -27,11 +30,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith("Bearer ")) {
             try {
                 Claims claims = jwtService.parse(header.substring(7));
-                String role = String.valueOf(claims.get("role", String.class));
+                Long userId = Long.valueOf(claims.getSubject());
+                User user = userMapper.selectById(userId);
+                if (user == null || !"ACTIVE".equals(user.getStatus())) {
+                    SecurityContextHolder.clearContext();
+                    filterChain.doFilter(request, response);
+                    return;
+                }
                 var auth = new UsernamePasswordAuthenticationToken(
-                        claims.getSubject(),
+                        userId.toString(),
                         null,
-                        List.of(new SimpleGrantedAuthority("ROLE_" + role)));
+                        List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole())));
                 SecurityContextHolder.getContext().setAuthentication(auth);
             } catch (RuntimeException ignored) {
                 SecurityContextHolder.clearContext();

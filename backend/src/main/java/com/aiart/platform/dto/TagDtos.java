@@ -2,6 +2,7 @@ package com.aiart.platform.dto;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.time.LocalDateTime;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -36,6 +37,29 @@ public final class TagDtos {
 
     public record TagDetail(TagNode tag, Long categoryId, String categoryName, String categorySlug,
                             List<TagPreviewNode> previews) {
+    }
+
+    public record TagPreviewSaveRequest(String previewType, String sceneKey, String titleZh,
+                                        String promptSnapshot, Integer sortOrder, Boolean cover) {
+    }
+
+    public record TagPreviewOrderRequest(@NotNull List<Long> previewIds) {
+    }
+
+    public record TagUsageItem(Long id, String name, String displayNameZh, long usageCount) {
+    }
+
+    public record TagCombinationItem(Long tagAId, String tagAName, String tagADisplayNameZh,
+                                     Long tagBId, String tagBName, String tagBDisplayNameZh,
+                                     long usageCount, LocalDateTime lastUsedAt) {
+    }
+
+    public record SearchKeywordStat(String keyword, long searchCount, long zeroResultCount,
+                                    LocalDateTime lastSearchedAt) {
+    }
+
+    public record TagAnalytics(List<TagUsageItem> topTags, List<TagCombinationItem> topCombinations,
+                               List<SearchKeywordStat> searchKeywords) {
     }
 
     public record PromptBuildRequest(List<Long> tagIds, String freeText, String negativeText) {

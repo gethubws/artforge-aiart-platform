@@ -4,18 +4,26 @@ import com.aiart.platform.dto.TagDtos;
 import com.aiart.platform.entity.Tag;
 import com.aiart.platform.entity.TagCategory;
 import com.aiart.platform.entity.TagPreview;
+import com.aiart.platform.entity.TagCombinationStat;
+import com.aiart.platform.entity.TagSearchLog;
 import com.aiart.platform.exception.BusinessException;
 import com.aiart.platform.exception.ErrorCode;
 import com.aiart.platform.mapper.TagCategoryMapper;
 import com.aiart.platform.mapper.TagMapper;
 import com.aiart.platform.mapper.TagPreviewMapper;
+import com.aiart.platform.mapper.TagCombinationStatMapper;
+import com.aiart.platform.mapper.TagSearchLogMapper;
+import com.aiart.platform.service.FileStorageService;
 import com.aiart.platform.service.TagService;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -24,6 +32,9 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,6 +43,9 @@ public class TagServiceImpl implements TagService {
     private final TagCategoryMapper tagCategoryMapper;
     private final TagMapper tagMapper;
     private final TagPreviewMapper tagPreviewMapper;
+    private final TagCombinationStatMapper tagCombinationStatMapper;
+    private final TagSearchLogMapper tagSearchLogMapper;
+    private final FileStorageService fileStorageService;
 
     @Override
     public List<TagDtos.TagCategoryNode> tree() {
@@ -110,6 +124,7 @@ public class TagServiceImpl implements TagService {
         }
         Page<Tag> result = tagMapper.selectPage(new Page<>(current, limit),
                 query.orderByDesc(Tag::getUsageCount).orderByAsc(Tag::getCreatedAt));
+        logSearch(categoryId, keyword, result.getTotal());
         return new TagDtos.TagPage(
                 result.getRecords().stream().map(this::toNode).toList(),
                 result.getCurrent(),
@@ -127,10 +142,19 @@ public class TagServiceImpl implements TagService {
         if (tag == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "Tag not found");
         }
+        return detail(tag);
+    }
+
+    @Override
+    public TagDtos.TagDetail adminDetail(Long tagId) {
+        return detail(requireTag(tagId));
+    }
+
+    private TagDtos.TagDetail detail(Tag tag) {
         TagCategory category = tagCategoryMapper.selectById(tag.getCategoryId());
         List<TagDtos.TagPreviewNode> previews = tagPreviewMapper.selectList(
                         Wrappers.<TagPreview>lambdaQuery()
-                                .eq(TagPreview::getTagId, tagId)
+                                .eq(TagPreview::getTagId, tag.getId())
                                 .orderByDesc(TagPreview::getIsCover)
                                 .orderByAsc(TagPreview::getSortOrder)
                                 .orderByAsc(TagPreview::getCreatedAt)).stream()
@@ -146,6 +170,144 @@ public class TagServiceImpl implements TagService {
                 category == null ? null : category.getName(),
                 category == null ? null : category.getSlug(),
                 previews);
+    }
+
+    @Override
+    @Transactional
+    public TagDtos.TagDetail addPreview(Long tagId, MultipartFile file, TagDtos.TagPreviewSaveRequest request) {
+        Tag tag = requireTag(tagId);
+        String imageUrl = fileStorageService.saveTagPreview(file);
+        TagPreview preview = new TagPreview();
+        preview.setTagId(tagId);
+        preview.setImageUrl(imageUrl);
+        applyPreview(preview, request);
+        if (preview.getSortOrder() == null) {
+            preview.setSortOrder(nextSortOrder(tagId));
+        }
+        preview.setCreatedAt(LocalDateTime.now());
+        boolean firstPreview = tagPreviewMapper.selectCount(Wrappers.<TagPreview>lambdaQuery()
+                .eq(TagPreview::getTagId, tagId)) == 0;
+        preview.setIsCover(firstPreview || Boolean.TRUE.equals(request.cover()));
+        tagPreviewMapper.insert(preview);
+        if (Boolean.TRUE.equals(preview.getIsCover())) {
+            setCover(tag, preview);
+        }
+        return adminDetail(tagId);
+    }
+
+    @Override
+    @Transactional
+    public TagDtos.TagDetail updatePreview(Long tagId, Long previewId, TagDtos.TagPreviewSaveRequest request) {
+        Tag tag = requireTag(tagId);
+        TagPreview preview = requirePreview(tagId, previewId);
+        applyPreview(preview, request);
+        tagPreviewMapper.updateById(preview);
+        if (Boolean.TRUE.equals(request.cover())) {
+            setCover(tag, preview);
+        }
+        return adminDetail(tagId);
+    }
+
+    @Override
+    @Transactional
+    public TagDtos.TagDetail replacePreviewImage(Long tagId, Long previewId, MultipartFile file) {
+        Tag tag = requireTag(tagId);
+        TagPreview preview = requirePreview(tagId, previewId);
+        String oldUrl = preview.getImageUrl();
+        String imageUrl = fileStorageService.saveTagPreview(file);
+        preview.setImageUrl(imageUrl);
+        tagPreviewMapper.updateById(preview);
+        if (Boolean.TRUE.equals(preview.getIsCover())) {
+            tag.setPreviewImageUrl(imageUrl);
+            tagMapper.updateById(tag);
+        }
+        fileStorageService.deleteStoredFile(oldUrl);
+        return adminDetail(tagId);
+    }
+
+    @Override
+    @Transactional
+    public TagDtos.TagDetail deletePreview(Long tagId, Long previewId) {
+        Tag tag = requireTag(tagId);
+        TagPreview preview = requirePreview(tagId, previewId);
+        boolean cover = Boolean.TRUE.equals(preview.getIsCover());
+        tagPreviewMapper.deleteById(previewId);
+        fileStorageService.deleteStoredFile(preview.getImageUrl());
+        if (cover) {
+            TagPreview next = tagPreviewMapper.selectOne(Wrappers.<TagPreview>lambdaQuery()
+                    .eq(TagPreview::getTagId, tagId)
+                    .orderByAsc(TagPreview::getSortOrder)
+                    .last("LIMIT 1"));
+            if (next == null) {
+                tag.setPreviewImageUrl(null);
+                tagMapper.updateById(tag);
+            } else {
+                setCover(tag, next);
+            }
+        }
+        return adminDetail(tagId);
+    }
+
+    @Override
+    @Transactional
+    public TagDtos.TagDetail reorderPreviews(Long tagId, TagDtos.TagPreviewOrderRequest request) {
+        requireTag(tagId);
+        List<Long> previewIds = request.previewIds().stream().filter(Objects::nonNull).distinct().toList();
+        List<TagPreview> previews = tagPreviewMapper.selectList(Wrappers.<TagPreview>lambdaQuery()
+                .eq(TagPreview::getTagId, tagId));
+        Set<Long> existingIds = previews.stream().map(TagPreview::getId).collect(Collectors.toSet());
+        if (previewIds.size() != previews.size() || !existingIds.equals(new HashSet<>(previewIds))) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Preview order must include every preview exactly once");
+        }
+        for (int index = 0; index < previewIds.size(); index++) {
+            Long targetId = previewIds.get(index);
+            TagPreview preview = previews.stream()
+                    .filter(item -> item.getId().equals(targetId))
+                    .findFirst()
+                    .orElseThrow();
+            preview.setSortOrder((index + 1) * 10);
+            tagPreviewMapper.updateById(preview);
+        }
+        return adminDetail(tagId);
+    }
+
+    @Override
+    public TagDtos.TagAnalytics analytics() {
+        List<Tag> topTags = tagMapper.selectList(Wrappers.<Tag>lambdaQuery()
+                .eq(Tag::getStatus, "ACTIVE")
+                .orderByDesc(Tag::getUsageCount)
+                .orderByAsc(Tag::getName)
+                .last("LIMIT 20"));
+        List<TagCombinationStat> combinations = tagCombinationStatMapper.selectList(
+                Wrappers.<TagCombinationStat>lambdaQuery()
+                        .orderByDesc(TagCombinationStat::getUsageCount)
+                        .orderByDesc(TagCombinationStat::getLastUsedAt)
+                        .last("LIMIT 20"));
+        Set<Long> tagIds = combinations.stream()
+                .flatMap(item -> java.util.stream.Stream.of(item.getTagAId(), item.getTagBId()))
+                .collect(Collectors.toSet());
+        Map<Long, Tag> tagMap = tagIds.isEmpty() ? Map.of() : tagMapper.selectBatchIds(tagIds).stream()
+                .collect(Collectors.toMap(Tag::getId, tag -> tag));
+        List<TagDtos.TagCombinationItem> combinationItems = combinations.stream().map(item -> {
+            Tag tagA = tagMap.get(item.getTagAId());
+            Tag tagB = tagMap.get(item.getTagBId());
+            return new TagDtos.TagCombinationItem(
+                    item.getTagAId(), tagA == null ? "" : tagA.getName(), tagA == null ? null : tagA.getDisplayNameZh(),
+                    item.getTagBId(), tagB == null ? "" : tagB.getName(), tagB == null ? null : tagB.getDisplayNameZh(),
+                    item.getUsageCount() == null ? 0 : item.getUsageCount(), item.getLastUsedAt());
+        }).toList();
+        List<Map<String, Object>> searchRows = tagSearchLogMapper.selectMaps(new QueryWrapper<TagSearchLog>()
+                .select("keyword", "COUNT(*) AS search_count",
+                        "SUM(CASE WHEN result_count = 0 THEN 1 ELSE 0 END) AS zero_result_count",
+                        "MAX(created_at) AS last_searched_at")
+                .groupBy("keyword")
+                .orderByDesc("search_count")
+                .last("LIMIT 30"));
+        return new TagDtos.TagAnalytics(
+                topTags.stream().map(tag -> new TagDtos.TagUsageItem(
+                        tag.getId(), tag.getName(), tag.getDisplayNameZh(), tag.getUsageCount() == null ? 0 : tag.getUsageCount())).toList(),
+                combinationItems,
+                searchRows.stream().map(this::toSearchStat).toList());
     }
 
     private List<TagDtos.TagCategoryNode> tree(boolean includePrivate) {
@@ -169,6 +331,7 @@ public class TagServiceImpl implements TagService {
     }
 
     @Override
+    @Transactional
     public TagDtos.PromptBuildResponse buildPrompt(TagDtos.PromptBuildRequest request) {
         List<Long> tagIds = request.tagIds() == null ? List.of() : request.tagIds();
         List<String> promptParts = new ArrayList<>();
@@ -182,6 +345,7 @@ public class TagServiceImpl implements TagService {
                     .in(Tag::getId, tagIds)
                     .eq(Tag::getStatus, "ACTIVE")
                     .eq(Tag::getVisibility, "PUBLIC"));
+            recordUsage(tags);
             tags.stream()
                     .sorted(Comparator.comparing(Tag::getWeight).reversed())
                     .forEach(tag -> {
@@ -288,6 +452,97 @@ public class TagServiceImpl implements TagService {
                 preview.getPromptSnapshot(),
                 preview.getSortOrder(),
                 Boolean.TRUE.equals(preview.getIsCover()));
+    }
+
+    private Tag requireTag(Long tagId) {
+        Tag tag = tagMapper.selectById(tagId);
+        if (tag == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "Tag not found");
+        }
+        return tag;
+    }
+
+    private TagPreview requirePreview(Long tagId, Long previewId) {
+        TagPreview preview = tagPreviewMapper.selectOne(Wrappers.<TagPreview>lambdaQuery()
+                .eq(TagPreview::getId, previewId)
+                .eq(TagPreview::getTagId, tagId));
+        if (preview == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "Tag preview not found");
+        }
+        return preview;
+    }
+
+    private void applyPreview(TagPreview preview, TagDtos.TagPreviewSaveRequest request) {
+        String previewType = StringUtils.hasText(request.previewType()) ? request.previewType().trim().toUpperCase() : "EXAMPLE";
+        if (!List.of("COVER", "EXAMPLE", "COMPARISON").contains(previewType)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Unsupported preview type");
+        }
+        preview.setPreviewType(previewType);
+        preview.setSceneKey(StringUtils.hasText(request.sceneKey()) ? request.sceneKey().trim().toUpperCase() : "GENERAL");
+        preview.setTitleZh(trimToNull(request.titleZh()));
+        preview.setPromptSnapshot(trimToNull(request.promptSnapshot()));
+        if (request.sortOrder() != null) {
+            preview.setSortOrder(Math.max(0, request.sortOrder()));
+        }
+    }
+
+    private int nextSortOrder(Long tagId) {
+        TagPreview last = tagPreviewMapper.selectOne(Wrappers.<TagPreview>lambdaQuery()
+                .eq(TagPreview::getTagId, tagId)
+                .orderByDesc(TagPreview::getSortOrder)
+                .last("LIMIT 1"));
+        return last == null || last.getSortOrder() == null ? 10 : last.getSortOrder() + 10;
+    }
+
+    private void setCover(Tag tag, TagPreview cover) {
+        tagPreviewMapper.update(null, Wrappers.<TagPreview>lambdaUpdate()
+                .eq(TagPreview::getTagId, tag.getId())
+                .set(TagPreview::getIsCover, false));
+        cover.setIsCover(true);
+        cover.setPreviewType("COVER");
+        tagPreviewMapper.updateById(cover);
+        tag.setPreviewImageUrl(cover.getImageUrl());
+        tagMapper.updateById(tag);
+    }
+
+    private void recordUsage(List<Tag> tags) {
+        List<Long> ids = tags.stream().map(Tag::getId).distinct().sorted().limit(12).toList();
+        if (ids.isEmpty()) {
+            return;
+        }
+        tagMapper.update(null, Wrappers.<Tag>lambdaUpdate()
+                .in(Tag::getId, ids)
+                .setSql("usage_count = usage_count + 1"));
+        LocalDateTime now = LocalDateTime.now();
+        for (int left = 0; left < ids.size(); left++) {
+            for (int right = left + 1; right < ids.size(); right++) {
+                tagCombinationStatMapper.increment(IdWorker.getId(), ids.get(left), ids.get(right), now);
+            }
+        }
+    }
+
+    private void logSearch(Long categoryId, String keyword, long resultCount) {
+        if (!StringUtils.hasText(keyword)) {
+            return;
+        }
+        TagSearchLog log = new TagSearchLog();
+        log.setCategoryId(categoryId);
+        log.setKeyword(keyword.trim().toLowerCase());
+        log.setResultCount(resultCount);
+        log.setCreatedAt(LocalDateTime.now());
+        tagSearchLogMapper.insert(log);
+    }
+
+    private TagDtos.SearchKeywordStat toSearchStat(Map<String, Object> row) {
+        return new TagDtos.SearchKeywordStat(
+                String.valueOf(row.getOrDefault("keyword", "")),
+                number(row.get("search_count")),
+                number(row.get("zero_result_count")),
+                row.get("last_searched_at") instanceof LocalDateTime value ? value : null);
+    }
+
+    private long number(Object value) {
+        return value instanceof Number number ? number.longValue() : 0L;
     }
 
     private void apply(Tag tag, TagDtos.TagSaveRequest request) {

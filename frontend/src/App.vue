@@ -322,10 +322,15 @@
         :tag-admin-loading="tagAdminLoading"
         :admin-dashboard-loading="adminDashboardLoading"
         :admin-dashboard="adminDashboard"
+        :tag-analytics="tagAnalytics"
         :category-form="categoryForm"
         :tag-form="tagForm"
         :admin-tag-tree="adminTagTree"
         :flat-tags="flatTags"
+        :preview-manager-visible="previewManagerVisible"
+        :active-tag-detail="activeTagDetail"
+        :preview-form="previewForm"
+        :tag-preview-loading="tagPreviewLoading"
         :pending-audits="pendingAudits"
         :my-audits="myAudits"
         :format-metric-value="formatMetricValue"
@@ -340,6 +345,14 @@
         @save-tag-item="saveTagItem"
         @edit-tag-item="editTagItem"
         @disable-tag-item="disableTagItem"
+        @open-tag-gallery="openTagGallery"
+        @close-tag-gallery="closeTagGallery"
+        @reset-preview-form="resetPreviewForm"
+        @edit-tag-preview="editTagPreview"
+        @save-tag-preview="saveTagPreviewItem"
+        @set-tag-preview-cover="setTagPreviewCover"
+        @delete-tag-preview="deleteTagPreviewItem"
+        @move-tag-preview="moveTagPreview"
         @review-content-audit="reviewContentAudit"
       />
 
@@ -504,11 +517,18 @@ import {
   buildPrompt,
   createTag,
   createTagCategory,
+  addTagPreview,
   deactivateTag,
+  deleteTagPreview,
+  getAdminTagDetail,
   getAdminTagTree,
+  getTagAnalytics,
   getTagCategories,
   getTagOptions,
   getTags,
+  reorderTagPreviews,
+  replaceTagPreviewImage,
+  updateTagPreview,
   updateTag
 } from './api/tags'
 import {
@@ -709,6 +729,7 @@ const auditLoading = ref(false)
 const tagAdminLoading = ref(false)
 const adminDashboardLoading = ref(false)
 const adminDashboard = ref(null)
+const tagAnalytics = ref({ topTags: [], topCombinations: [], searchKeywords: [] })
 const adminTagTree = ref([])
 const pendingAudits = ref([])
 const myAudits = ref([])
@@ -724,6 +745,18 @@ const tagForm = reactive({
   previewImageUrl: '',
   weight: 1,
   visibility: 'PUBLIC'
+})
+const previewManagerVisible = ref(false)
+const activeTagDetail = ref(null)
+const tagPreviewLoading = ref(false)
+const previewForm = reactive({
+  id: null,
+  previewType: 'EXAMPLE',
+  sceneKey: 'GENERAL',
+  titleZh: '',
+  promptSnapshot: '',
+  sortOrder: null,
+  cover: false
 })
 
 const userInitial = computed(() => {
@@ -2013,16 +2046,22 @@ async function refreshAdminData() {
   auditLoading.value = true
   adminDashboardLoading.value = true
   try {
-    const [dashboard, pending, mine, adminTags] = await Promise.all([
+    const [dashboard, pending, mine, adminTags, analytics] = await Promise.all([
       getAdminDashboard(),
       getPendingAudits(),
       getMyAudits(),
-      getAdminTagTree()
+      getAdminTagTree(),
+      getTagAnalytics()
     ])
     adminDashboard.value = normalizeDashboard(dashboard)
     pendingAudits.value = pending || []
     myAudits.value = mine || []
     adminTagTree.value = adminTags || []
+    tagAnalytics.value = {
+      topTags: analytics?.topTags || [],
+      topCombinations: analytics?.topCombinations || [],
+      searchKeywords: analytics?.searchKeywords || []
+    }
   } finally {
     auditLoading.value = false
     adminDashboardLoading.value = false
@@ -2175,6 +2214,146 @@ function toggleAllFiltered() {
     return
   }
   selectedArtworkIds.value = new Set(myArtworks.value.map((artwork) => artwork.id))
+}
+
+function resetPreviewForm() {
+  Object.assign(previewForm, {
+    id: null,
+    previewType: 'EXAMPLE',
+    sceneKey: 'GENERAL',
+    titleZh: '',
+    promptSnapshot: activeTagDetail.value?.tag?.promptText || '',
+    sortOrder: null,
+    cover: false
+  })
+}
+
+async function openTagGallery(tag) {
+  previewManagerVisible.value = true
+  tagPreviewLoading.value = true
+  try {
+    activeTagDetail.value = await getAdminTagDetail(tag.id)
+    resetPreviewForm()
+  } catch (error) {
+    previewManagerVisible.value = false
+    ElMessage.error(error?.message || '标签图库加载失败')
+  } finally {
+    tagPreviewLoading.value = false
+  }
+}
+
+function closeTagGallery() {
+  previewManagerVisible.value = false
+  activeTagDetail.value = null
+  resetPreviewForm()
+}
+
+function editTagPreview(preview) {
+  Object.assign(previewForm, {
+    id: preview.id,
+    previewType: preview.previewType || 'EXAMPLE',
+    sceneKey: preview.sceneKey || 'GENERAL',
+    titleZh: preview.titleZh || '',
+    promptSnapshot: preview.promptSnapshot || activeTagDetail.value?.tag?.promptText || '',
+    sortOrder: preview.sortOrder ?? null,
+    cover: Boolean(preview.cover)
+  })
+}
+
+function previewPayload(overrides = {}) {
+  return {
+    previewType: previewForm.previewType,
+    sceneKey: previewForm.sceneKey,
+    titleZh: previewForm.titleZh,
+    promptSnapshot: previewForm.promptSnapshot,
+    sortOrder: previewForm.sortOrder,
+    cover: previewForm.cover,
+    ...overrides
+  }
+}
+
+async function saveTagPreviewItem(file) {
+  const tagId = activeTagDetail.value?.tag?.id
+  const editing = Boolean(previewForm.id)
+  if (!tagId) return
+  if (!previewForm.id && !file) {
+    ElMessage.warning('请先选择要上传的图片')
+    return
+  }
+  tagPreviewLoading.value = true
+  try {
+    let detail
+    if (previewForm.id) {
+      detail = await updateTagPreview(tagId, previewForm.id, previewPayload())
+      if (file) detail = await replaceTagPreviewImage(tagId, previewForm.id, file)
+    } else {
+      detail = await addTagPreview(tagId, file, previewPayload())
+    }
+    activeTagDetail.value = detail
+    resetPreviewForm()
+    await Promise.all([loadTags(), refreshAdminData()])
+    ElMessage.success(editing ? '预览图已更新' : '预览图已上传')
+  } catch (error) {
+    ElMessage.error(error?.message || '预览图保存失败')
+  } finally {
+    tagPreviewLoading.value = false
+  }
+}
+
+async function setTagPreviewCover(preview) {
+  const tagId = activeTagDetail.value?.tag?.id
+  if (!tagId || preview.cover) return
+  tagPreviewLoading.value = true
+  try {
+    activeTagDetail.value = await updateTagPreview(tagId, preview.id, {
+      previewType: preview.previewType,
+      sceneKey: preview.sceneKey,
+      titleZh: preview.titleZh,
+      promptSnapshot: preview.promptSnapshot,
+      sortOrder: preview.sortOrder,
+      cover: true
+    })
+    await Promise.all([loadTags(), refreshAdminData()])
+    ElMessage.success('封面已更新')
+  } catch (error) {
+    ElMessage.error(error?.message || '设置封面失败')
+  } finally {
+    tagPreviewLoading.value = false
+  }
+}
+
+async function deleteTagPreviewItem(preview) {
+  const tagId = activeTagDetail.value?.tag?.id
+  if (!tagId) return
+  tagPreviewLoading.value = true
+  try {
+    activeTagDetail.value = await deleteTagPreview(tagId, preview.id)
+    resetPreviewForm()
+    await Promise.all([loadTags(), refreshAdminData()])
+    ElMessage.success('预览图已删除')
+  } catch (error) {
+    ElMessage.error(error?.message || '删除预览图失败')
+  } finally {
+    tagPreviewLoading.value = false
+  }
+}
+
+async function moveTagPreview({ preview, offset }) {
+  const tagId = activeTagDetail.value?.tag?.id
+  const previews = [...(activeTagDetail.value?.previews || [])]
+  const index = previews.findIndex((item) => item.id === preview.id)
+  const target = index + offset
+  if (!tagId || index < 0 || target < 0 || target >= previews.length) return
+  ;[previews[index], previews[target]] = [previews[target], previews[index]]
+  tagPreviewLoading.value = true
+  try {
+    activeTagDetail.value = await reorderTagPreviews(tagId, previews.map((item) => item.id))
+    ElMessage.success('图片顺序已更新')
+  } catch (error) {
+    ElMessage.error(error?.message || '调整顺序失败')
+  } finally {
+    tagPreviewLoading.value = false
+  }
 }
 
 async function publishSelected() {

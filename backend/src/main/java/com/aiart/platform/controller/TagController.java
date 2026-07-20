@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -34,6 +35,18 @@ public class TagController {
     public ApiResponse<List<TagDtos.TagCategoryNode>> adminTree() {
         currentUser.requireAdmin();
         return ApiResponse.ok(tagService.adminTree());
+    }
+
+    @GetMapping("/admin/{tagId}")
+    public ApiResponse<TagDtos.TagDetail> adminDetail(@PathVariable Long tagId) {
+        currentUser.requireAdmin();
+        return ApiResponse.ok(tagService.adminDetail(tagId));
+    }
+
+    @GetMapping("/admin/analytics")
+    public ApiResponse<TagDtos.TagAnalytics> analytics() {
+        currentUser.requireAdmin();
+        return ApiResponse.ok(tagService.analytics());
     }
 
     @GetMapping("/categories")
@@ -88,5 +101,54 @@ public class TagController {
         currentUser.requireAdmin();
         tagService.deactivateTag(tagId);
         return ApiResponse.ok();
+    }
+
+    @PostMapping("/{tagId}/previews")
+    public ApiResponse<TagDtos.TagDetail> addPreview(
+            @PathVariable Long tagId,
+            @RequestParam MultipartFile file,
+            @RequestParam(required = false) String previewType,
+            @RequestParam(required = false) String sceneKey,
+            @RequestParam(required = false) String titleZh,
+            @RequestParam(required = false) String promptSnapshot,
+            @RequestParam(required = false) Integer sortOrder,
+            @RequestParam(required = false) Boolean cover) {
+        currentUser.requireAdmin();
+        return ApiResponse.ok(tagService.addPreview(tagId, file,
+                new TagDtos.TagPreviewSaveRequest(previewType, sceneKey, titleZh, promptSnapshot, sortOrder, cover)));
+    }
+
+    @PutMapping("/{tagId}/previews/{previewId}")
+    public ApiResponse<TagDtos.TagDetail> updatePreview(
+            @PathVariable Long tagId,
+            @PathVariable Long previewId,
+            @RequestBody TagDtos.TagPreviewSaveRequest request) {
+        currentUser.requireAdmin();
+        return ApiResponse.ok(tagService.updatePreview(tagId, previewId, request));
+    }
+
+    @PostMapping("/{tagId}/previews/{previewId}/image")
+    public ApiResponse<TagDtos.TagDetail> replacePreviewImage(
+            @PathVariable Long tagId,
+            @PathVariable Long previewId,
+            @RequestParam MultipartFile file) {
+        currentUser.requireAdmin();
+        return ApiResponse.ok(tagService.replacePreviewImage(tagId, previewId, file));
+    }
+
+    @DeleteMapping("/{tagId}/previews/{previewId}")
+    public ApiResponse<TagDtos.TagDetail> deletePreview(
+            @PathVariable Long tagId,
+            @PathVariable Long previewId) {
+        currentUser.requireAdmin();
+        return ApiResponse.ok(tagService.deletePreview(tagId, previewId));
+    }
+
+    @PutMapping("/{tagId}/previews/order")
+    public ApiResponse<TagDtos.TagDetail> reorderPreviews(
+            @PathVariable Long tagId,
+            @RequestBody TagDtos.TagPreviewOrderRequest request) {
+        currentUser.requireAdmin();
+        return ApiResponse.ok(tagService.reorderPreviews(tagId, request));
     }
 }

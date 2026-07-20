@@ -109,6 +109,15 @@ const sceneNames = {
   INTERIOR: '室内示例',
   ARCHITECTURE: '建筑示例',
   STILL_LIFE: '静物示例',
+  FULL_BODY: '全身示例',
+  URBAN: '城市场景',
+  EXTERIOR: '建筑外观',
+  WILDLIFE: '野生动物',
+  DOMESTIC: '生活动物',
+  STUDIO: '棚拍示例',
+  FOOD: '美食示例',
+  LIFESTYLE: '生活场景',
+  ROAD: '道路场景',
   NIGHT: '夜景示例',
   CLOSE_UP: '近景示例'
 }

@@ -32,7 +32,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**", "/api/public/**", "/uploads/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/tags/tree", "/api/artworks/public").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/tags/**", "/api/artworks/public").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/artworks/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/tags/build-prompt").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/generation/provider/**").permitAll()

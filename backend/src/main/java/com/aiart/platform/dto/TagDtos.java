@@ -19,6 +19,25 @@ public final class TagDtos {
     public record TagCategoryNode(Long id, String name, String slug, List<TagNode> tags) {
     }
 
+    public record TagOption(Long id, Long categoryId, String categoryName, String categorySlug,
+                            String name, String displayNameZh) {
+    }
+
+    public record TagCategorySummary(Long id, String name, String slug, long tagCount,
+                                     List<TagNode> popularTags) {
+    }
+
+    public record TagPage(List<TagNode> items, long page, long size, long total, boolean hasNext) {
+    }
+
+    public record TagPreviewNode(Long id, String imageUrl, String previewType, String sceneKey,
+                                 String titleZh, String promptSnapshot, Integer sortOrder, boolean cover) {
+    }
+
+    public record TagDetail(TagNode tag, Long categoryId, String categoryName, String categorySlug,
+                            List<TagPreviewNode> previews) {
+    }
+
     public record PromptBuildRequest(List<Long> tagIds, String freeText, String negativeText) {
     }
 

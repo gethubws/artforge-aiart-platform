@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -33,6 +34,30 @@ public class TagController {
     public ApiResponse<List<TagDtos.TagCategoryNode>> adminTree() {
         currentUser.requireAdmin();
         return ApiResponse.ok(tagService.adminTree());
+    }
+
+    @GetMapping("/categories")
+    public ApiResponse<List<TagDtos.TagCategorySummary>> categories() {
+        return ApiResponse.ok(tagService.categorySummaries());
+    }
+
+    @GetMapping("/options")
+    public ApiResponse<List<TagDtos.TagOption>> options() {
+        return ApiResponse.ok(tagService.options());
+    }
+
+    @GetMapping
+    public ApiResponse<TagDtos.TagPage> page(
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "12") int size) {
+        return ApiResponse.ok(tagService.page(categoryId, keyword, page, size));
+    }
+
+    @GetMapping("/{tagId}")
+    public ApiResponse<TagDtos.TagDetail> detail(@PathVariable Long tagId) {
+        return ApiResponse.ok(tagService.detail(tagId));
     }
 
     @PostMapping("/build-prompt")

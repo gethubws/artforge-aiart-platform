@@ -41,6 +41,8 @@
           :free-text="freeText"
           :negative-text="negativeText"
           :tag-tree="tagTree"
+          :tag-options="tagOptions"
+          :selected-category-id="selectedCategoryId"
           :selected-tags="selectedTags"
           :generation-mode="generationMode"
           :init-image-preview="initImagePreview"
@@ -50,6 +52,9 @@
           @open-expanded="$emit('open-prompt-builder')"
           @compose="$emit('compose')"
           @toggle-tag="$emit('toggle-tag', $event)"
+          @load-category="$emit('load-tag-category', $event)"
+          @load-more-tags="$emit('load-more-tags', $event)"
+          @category-change="$emit('prompt-category-change', $event)"
           @clear-init-image="$emit('clear-init-image')"
           @init-image-change="$emit('init-image-change', $event)"
         />
@@ -367,6 +372,8 @@ defineProps({
   freeText: { type: String, default: '' },
   negativeText: { type: String, default: '' },
   tagTree: { type: Array, default: () => [] },
+  tagOptions: { type: Array, default: () => [] },
+  selectedCategoryId: { type: [String, Number], default: null },
   selectedTags: { type: Array, default: () => [] },
   initImagePreview: { type: String, default: '' },
   providerStateClass: { type: String, default: '' },
@@ -409,6 +416,9 @@ defineEmits([
   'open-prompt-builder',
   'compose',
   'toggle-tag',
+  'load-tag-category',
+  'load-more-tags',
+  'prompt-category-change',
   'clear-init-image',
   'init-image-change',
   'patch-generation-form',

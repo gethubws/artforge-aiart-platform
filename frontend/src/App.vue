@@ -18,6 +18,8 @@
         :free-text="freeText"
         :negative-text="negativeText"
         :tag-tree="tagTree"
+        :tag-options="tagOptions"
+        :selected-category-id="promptCategoryId"
         :selected-tags="selectedTags"
         :init-image-preview="initImagePreview"
         :provider-state-class="providerStateClass"
@@ -57,6 +59,9 @@
         @open-prompt-builder="promptBuilderVisible = true"
         @compose="composePrompt"
         @toggle-tag="toggleTag"
+        @load-tag-category="loadTagCategory"
+        @load-more-tags="loadMoreTags"
+        @prompt-category-change="promptCategoryId = $event"
         @clear-init-image="clearInitImage"
         @init-image-change="handleInitImageChange"
         @patch-generation-form="patchGenerationForm"
@@ -376,10 +381,16 @@
       :composed-prompt="composedPrompt"
       :composed-negative="composedNegative"
       :tag-tree="tagTree"
+      :tag-options="tagOptions"
+      :selected-category-id="promptCategoryId"
       :selected-tags="selectedTags"
       @close="promptBuilderVisible = false"
       @compose="composePrompt"
       @toggle-tag="toggleTag"
+      @load-category="loadTagCategory"
+      @load-more-tags="loadMoreTags"
+      @search-tags="searchTags"
+      @category-change="promptCategoryId = $event"
       @update:free-text="freeText = $event"
       @update:negative-text="negativeText = $event"
     />
@@ -489,7 +500,17 @@ import {
   requestArtworkPublish,
   updateArtwork
 } from './api/artworks'
-import { buildPrompt, createTag, createTagCategory, deactivateTag, getAdminTagTree, getTagTree, updateTag } from './api/tags'
+import {
+  buildPrompt,
+  createTag,
+  createTagCategory,
+  deactivateTag,
+  getAdminTagTree,
+  getTagCategories,
+  getTagOptions,
+  getTags,
+  updateTag
+} from './api/tags'
 import {
   archiveStylePackage,
   createStylePackage,
@@ -551,6 +572,8 @@ const negativeText = ref('')
 const composedPrompt = ref('')
 const composedNegative = ref('')
 const tagTree = ref([])
+const tagOptions = ref([])
+const promptCategoryId = ref(null)
 const selectedTags = ref([])
 const initImagePreview = ref('')
 const initImageBase64 = ref('')
@@ -708,7 +731,8 @@ const userInitial = computed(() => {
   return name.slice(0, 1).toUpperCase()
 })
 
-const flatTags = computed(() => tagTree.value.flatMap((category) => category.tags || []))
+const loadedPromptTags = computed(() => tagTree.value.flatMap((category) => category.tags || []))
+const flatTags = computed(() => tagOptions.value)
 const previewImage = computed(() => artworkDetail.value?.imageUrl || myArtworks.value[0]?.imageUrl || '')
 
 const allFilteredArtworksSelected = computed(() => {
@@ -888,7 +912,7 @@ async function composePrompt() {
 }
 
 function selectedTagObjects() {
-  return flatTags.value.filter((tag) => selectedTags.value.includes(tag.id))
+  return loadedPromptTags.value.filter((tag) => selectedTags.value.includes(tag.id))
 }
 
 function toggleTag(tagId) {
@@ -1273,10 +1297,73 @@ async function loadProvider() {
 
 async function loadTags() {
   try {
-    tagTree.value = (await getTagTree()) || []
+    const [categories, options] = await Promise.all([getTagCategories(), getTagOptions()])
+    tagOptions.value = options || []
+    tagTree.value = (categories || []).map((category) => ({
+      ...category,
+      tags: category.popularTags || [],
+      page: 0,
+      size: 8,
+      total: category.tagCount || 0,
+      hasNext: Number(category.tagCount || 0) > Number(category.popularTags?.length || 0),
+      loaded: false,
+      loading: false,
+      keyword: ''
+    }))
+    if (tagTree.value[0]) {
+      promptCategoryId.value = tagTree.value[0].id
+      await loadTagCategory(tagTree.value[0].id, { reset: true })
+    }
   } catch {
     tagTree.value = []
+    tagOptions.value = []
   }
+}
+
+async function loadTagCategory(categoryId, options = {}) {
+  const category = tagTree.value.find((item) => item.id === categoryId)
+  if (!category || category.loading) return
+  const keyword = options.keyword ?? category.keyword ?? ''
+  const reset = Boolean(options.reset) || keyword !== (category.keyword || '')
+  const append = Boolean(options.append)
+  if (category.loaded && !reset && !append) return
+  const nextPage = reset || !append ? 1 : Math.max(1, Number(category.page || 0) + 1)
+  patchTagCategory(categoryId, { loading: true })
+  try {
+    const result = await getTags({ categoryId, keyword: keyword || undefined, page: nextPage, size: category.size || 12 })
+    const currentCategory = tagTree.value.find((item) => item.id === categoryId)
+    const currentTags = reset ? [] : (currentCategory?.tags || [])
+    const merged = [...currentTags]
+    for (const tag of result?.items || []) {
+      const index = merged.findIndex((item) => item.id === tag.id)
+      if (index >= 0) merged[index] = tag
+      else merged.push(tag)
+    }
+    patchTagCategory(categoryId, {
+      tags: merged,
+      page: result?.page || nextPage,
+      total: result?.total ?? merged.length,
+      hasNext: Boolean(result?.hasNext),
+      loaded: true,
+      loading: false,
+      keyword
+    })
+  } catch (error) {
+    patchTagCategory(categoryId, { loading: false })
+    ElMessage.error(error?.message || '标签加载失败')
+  }
+}
+
+function patchTagCategory(categoryId, patch) {
+  tagTree.value = tagTree.value.map((category) => category.id === categoryId ? { ...category, ...patch } : category)
+}
+
+function loadMoreTags(categoryId) {
+  return loadTagCategory(categoryId, { append: true })
+}
+
+function searchTags({ categoryId, keyword }) {
+  return loadTagCategory(categoryId, { keyword, reset: true })
 }
 
 function normalizeArtworkQuery(query = {}) {

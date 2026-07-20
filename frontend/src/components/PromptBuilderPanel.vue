@@ -68,7 +68,7 @@
           @click="selectCategory(category)"
         >
           <span>{{ categoryLabel(category) }}</span>
-          <small>{{ category.tags?.length || 0 }}</small>
+          <small>{{ category.tagCount ?? category.tags?.length ?? 0 }}</small>
         </button>
       </div>
 
@@ -88,33 +88,21 @@
           <BilingualTagLabel :name="tag.name" :display-name-zh="tag.displayNameZh" />
           <el-icon v-if="selectedTags.includes(tag.id)" class="prompt-tag-check"><Check /></el-icon>
         </button>
-        <div v-if="!activeTags.length" class="prompt-empty-state">当前分类暂无可用标签</div>
+        <div v-if="activeCategory?.loading" class="prompt-empty-state">正在加载标签...</div>
+        <div v-else-if="!activeTags.length" class="prompt-empty-state">当前分类暂无可用标签</div>
       </div>
+      <el-button
+        v-if="activeCategory?.hasNext"
+        class="prompt-load-more"
+        text
+        :loading="activeCategory.loading"
+        @click="$emit('load-more-tags', activeCategory.id)"
+      >
+        加载更多标签
+      </el-button>
     </div>
 
-    <article v-if="focusedTag" class="tag-preview-card">
-      <div class="tag-preview-media">
-        <img v-if="focusedTag.previewImageUrl" :src="focusedTag.previewImageUrl" :alt="focusedTag.displayNameZh || focusedTag.name" />
-        <div v-else class="tag-preview-empty">预览图待补充</div>
-      </div>
-      <div class="tag-preview-meta">
-        <div class="tag-preview-title">
-          <strong><BilingualTagLabel :name="focusedTag.name" :display-name-zh="focusedTag.displayNameZh" /></strong>
-          <span>{{ categoryLabel(activeCategory) }}</span>
-        </div>
-        <p>{{ focusedTag.descriptionZh || '暂未补充中文说明。' }}</p>
-        <dl class="tag-prompt-impact">
-          <div>
-            <dt>正向词</dt>
-            <dd>{{ focusedTag.promptText }}</dd>
-          </div>
-          <div v-if="focusedTag.negativePromptText">
-            <dt>反向词</dt>
-            <dd>{{ focusedTag.negativePromptText }}</dd>
-          </div>
-        </dl>
-      </div>
-    </article>
+    <TagPreviewGallery v-if="focusedTag" :tag="focusedTag" :category-name="categoryLabel(focusedCategory)" />
 
     <div class="prompt-field-block">
       <div class="prompt-field-label">
@@ -154,11 +142,14 @@
 import { computed, ref, watch } from 'vue'
 import { Check, FullScreen, MagicStick, Refresh } from '@element-plus/icons-vue'
 import BilingualTagLabel from './BilingualTagLabel.vue'
+import TagPreviewGallery from './TagPreviewGallery.vue'
 
 const props = defineProps({
   freeText: { type: String, default: '' },
   negativeText: { type: String, default: '' },
   tagTree: { type: Array, default: () => [] },
+  tagOptions: { type: Array, default: () => [] },
+  selectedCategoryId: { type: [String, Number], default: null },
   selectedTags: { type: Array, default: () => [] },
   generationMode: { type: String, default: 'txt2img' },
   initImagePreview: { type: String, default: '' }
@@ -171,6 +162,9 @@ const emit = defineEmits([
   'open-expanded',
   'compose',
   'toggle-tag',
+  'load-category',
+  'load-more-tags',
+  'category-change',
   'clear-init-image',
   'init-image-change'
 ])
@@ -188,8 +182,10 @@ const categoryNames = {
 const activeCategoryId = ref(null)
 const focusedTagId = ref(null)
 const flatTags = computed(() => props.tagTree.flatMap((category) => category.tags || []))
-const totalTagCount = computed(() => flatTags.value.length)
-const selectedTagObjects = computed(() => flatTags.value.filter((tag) => props.selectedTags.includes(tag.id)))
+const totalTagCount = computed(() => props.tagTree.reduce((total, category) => total + Number(category.tagCount ?? category.tags?.length ?? 0), 0))
+const selectedTagObjects = computed(() => props.selectedTags.map((tagId) => {
+  return flatTags.value.find((tag) => tag.id === tagId) || props.tagOptions.find((tag) => tag.id === tagId)
+}).filter(Boolean))
 const activeCategory = computed(() => props.tagTree.find((category) => category.id === activeCategoryId.value) || props.tagTree[0] || null)
 const activeTags = computed(() => activeCategory.value?.tags || [])
 const focusedTag = computed(() => {
@@ -197,6 +193,12 @@ const focusedTag = computed(() => {
     || selectedTagObjects.value[0]
     || activeTags.value[0]
     || null
+})
+const focusedCategory = computed(() => {
+  const categoryId = focusedTag.value?.categoryId
+  return props.tagTree.find((category) => category.id === categoryId)
+    || props.tagTree.find((category) => (category.tags || []).some((tag) => tag.id === focusedTag.value?.id))
+    || activeCategory.value
 })
 
 function categoryLabel(category) {
@@ -206,17 +208,33 @@ function categoryLabel(category) {
 
 function selectCategory(category) {
   activeCategoryId.value = category.id
+  emit('category-change', category.id)
   if (!(category.tags || []).some((tag) => tag.id === focusedTagId.value)) {
     focusedTagId.value = category.tags?.[0]?.id || null
   }
+  emit('load-category', category.id)
 }
 
 function handleTagClick(tag) {
   focusedTagId.value = tag.id
-  const category = props.tagTree.find((item) => (item.tags || []).some((candidate) => candidate.id === tag.id))
-  if (category) activeCategoryId.value = category.id
+  const category = props.tagTree.find((item) => item.id === tag.categoryId)
+    || props.tagTree.find((item) => (item.tags || []).some((candidate) => candidate.id === tag.id))
+  if (category) {
+    activeCategoryId.value = category.id
+    emit('category-change', category.id)
+  }
   emit('toggle-tag', tag.id)
 }
+
+watch(
+  () => props.selectedCategoryId,
+  (categoryId) => {
+    if (props.tagTree.some((category) => category.id === categoryId)) {
+      activeCategoryId.value = categoryId
+    }
+  },
+  { immediate: true }
+)
 
 watch(
   () => props.tagTree,

@@ -71,6 +71,22 @@ CREATE TABLE IF NOT EXISTS tag (
   CONSTRAINT fk_tag_category FOREIGN KEY (category_id) REFERENCES tag_category(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS tag_preview (
+  id BIGINT PRIMARY KEY,
+  tag_id BIGINT NOT NULL,
+  image_url VARCHAR(512) NOT NULL,
+  preview_type VARCHAR(32) NOT NULL DEFAULT 'EXAMPLE',
+  scene_key VARCHAR(32) NOT NULL DEFAULT 'GENERAL',
+  title_zh VARCHAR(120),
+  prompt_snapshot TEXT,
+  sort_order INT NOT NULL DEFAULT 0,
+  is_cover TINYINT(1) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_tag_preview_image (tag_id, image_url),
+  INDEX idx_tag_preview_order (tag_id, is_cover, sort_order),
+  CONSTRAINT fk_tag_preview_tag FOREIGN KEY (tag_id) REFERENCES tag(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS ai_generation_job (
   id BIGINT PRIMARY KEY,
   user_id BIGINT NOT NULL,
@@ -380,3 +396,19 @@ INSERT IGNORE INTO tag (id, category_id, name, display_name_zh, description_zh, 
   (2038, 1007, 'dreamy', '梦幻', '通过柔光、薄雾和超现实细节营造轻盈梦境感。', 'dreamy ethereal atmosphere, luminous mist', NULL, '/images/tags/dreamy.webp', 1.05, 0),
   (2039, 1007, 'mysterious', '神秘', '使用雾气、隐藏信息和克制光线制造未知与悬念。', 'mysterious atmosphere, fog, hidden silhouettes', NULL, '/images/tags/mysterious.webp', 1.05, 0),
   (2040, 1007, 'epic', '史诗感', '强调宏大尺度、戏剧天空和具有英雄感的场面。', 'epic atmosphere, monumental scale, dramatic sky', NULL, '/images/tags/epic.webp', 1.15, 0);
+
+INSERT IGNORE INTO tag_preview
+  (id, tag_id, image_url, preview_type, scene_key, title_zh, prompt_snapshot, sort_order, is_cover)
+SELECT
+  tag.id * 1000 + 1,
+  tag.id,
+  tag.preview_image_url,
+  'COVER',
+  'GENERAL',
+  CONCAT(COALESCE(tag.display_name_zh, tag.name), '封面'),
+  tag.prompt_text,
+  0,
+  1
+FROM tag
+WHERE tag.preview_image_url IS NOT NULL
+  AND tag.preview_image_url <> '';

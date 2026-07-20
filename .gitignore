@@ -15,6 +15,10 @@ frontend/.vite/
 # Runtime logs
 *.log
 
+# Generated image sources and temporary batch inputs
+output/imagegen/
+tmp/imagegen/
+
 # IDE
 .idea/
 .vscode/

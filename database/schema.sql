@@ -334,13 +334,13 @@ INSERT IGNORE INTO tag_category (id, name, slug, parent_id, sort_order) VALUES
   (1005, 'Quality', 'quality', 0, 5);
 
 INSERT IGNORE INTO tag (id, category_id, name, display_name_zh, description_zh, prompt_text, negative_prompt_text, preview_image_url, weight, usage_count) VALUES
-  (2001, 1001, 'cinematic', '电影感', '强调镜头语言、叙事氛围和胶片质感。', 'cinematic style', NULL, NULL, 1.20, 0),
-  (2002, 1001, 'watercolor', '水彩', '偏柔和、带纸面渗色感的插画风格。', 'watercolor illustration', NULL, NULL, 1.00, 0),
-  (2003, 1001, 'cyberpunk', '赛博朋克', '强调霓虹、未来都市、科技感与反乌托邦氛围。', 'cyberpunk aesthetic', NULL, NULL, 1.10, 0),
-  (2004, 1002, 'character', '人物', '适合角色肖像、半身像和人物主体画面。', 'detailed character portrait', NULL, NULL, 1.10, 0),
-  (2005, 1002, 'landscape', '风景', '适合自然景观、城市景观和大场景画面。', 'wide landscape scene', NULL, NULL, 1.00, 0),
-  (2006, 1003, 'soft light', '柔光', '画面光线更柔和，边缘不过分锐利。', 'soft diffused lighting', NULL, NULL, 1.00, 0),
-  (2007, 1003, 'rim light', '轮廓光', '强化主体边缘高光和戏剧性光影。', 'dramatic rim lighting', NULL, NULL, 1.10, 0),
-  (2008, 1004, 'close-up', '近景', '突出主体局部细节与面部情绪。', 'close-up composition', NULL, NULL, 1.00, 0),
-  (2009, 1004, 'wide shot', '远景', '适合展现场景空间关系和整体构图。', 'wide angle composition', NULL, NULL, 1.00, 0),
-  (2010, 1005, 'high detail', '高细节', '强调清晰度、细节层次和画面完成度。', 'highly detailed, sharp focus', 'low quality, blurry', NULL, 1.30, 0);
+  (2001, 1001, 'cinematic', '电影感', '强调镜头语言、叙事氛围和胶片质感。', 'cinematic style', NULL, '/images/tags/cinematic.webp', 1.20, 0),
+  (2002, 1001, 'watercolor', '水彩', '偏柔和、带纸面渗色感的插画风格。', 'watercolor illustration', NULL, '/images/tags/watercolor.webp', 1.00, 0),
+  (2003, 1001, 'cyberpunk', '赛博朋克', '强调霓虹、未来都市、科技感与反乌托邦氛围。', 'cyberpunk aesthetic', NULL, '/images/tags/cyberpunk.webp', 1.10, 0),
+  (2004, 1002, 'character', '人物', '适合角色肖像、半身像和人物主体画面。', 'detailed character portrait', NULL, '/images/tags/character.webp', 1.10, 0),
+  (2005, 1002, 'landscape', '风景', '适合自然景观、城市景观和大场景画面。', 'wide landscape scene', NULL, '/images/tags/landscape.webp', 1.00, 0),
+  (2006, 1003, 'soft light', '柔光', '画面光线更柔和，边缘不过分锐利。', 'soft diffused lighting', NULL, '/images/tags/soft-light.webp', 1.00, 0),
+  (2007, 1003, 'rim light', '轮廓光', '强化主体边缘高光和戏剧性光影。', 'dramatic rim lighting', NULL, '/images/tags/rim-light.webp', 1.10, 0),
+  (2008, 1004, 'close-up', '近景', '突出主体局部细节与面部情绪。', 'close-up composition', NULL, '/images/tags/close-up.webp', 1.00, 0),
+  (2009, 1004, 'wide shot', '远景', '适合展现场景空间关系和整体构图。', 'wide angle composition', NULL, '/images/tags/wide-shot.webp', 1.00, 0),
+  (2010, 1005, 'high detail', '高细节', '强调清晰度、细节层次和画面完成度。', 'highly detailed, sharp focus', 'low quality, blurry', '/images/tags/high-detail.webp', 1.30, 0);

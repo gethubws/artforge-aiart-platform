@@ -106,6 +106,9 @@ const sceneNames = {
   CHARACTER: '人物示例',
   LANDSCAPE: '风景示例',
   OBJECT: '物品示例',
+  INTERIOR: '室内示例',
+  ARCHITECTURE: '建筑示例',
+  STILL_LIFE: '静物示例',
   NIGHT: '夜景示例',
   CLOSE_UP: '近景示例'
 }

@@ -399,7 +399,9 @@ INSERT IGNORE INTO tag (id, category_id, name, display_name_zh, description_zh, 
 
 INSERT IGNORE INTO tag_category (id, name, slug, parent_id, sort_order) VALUES
   (1008, 'Camera', 'camera', 0, 8),
-  (1009, 'Material', 'material', 0, 9);
+  (1009, 'Material', 'material', 0, 9),
+  (1010, 'Environment', 'environment', 0, 10),
+  (1011, 'Culture', 'culture', 0, 11);
 
 INSERT IGNORE INTO tag (id, category_id, name, display_name_zh, description_zh, prompt_text, negative_prompt_text, preview_image_url, weight, usage_count) VALUES
   (2041, 1001, 'engraving', '版画', '通过密集排线、刻痕和黑白层次形成传统版画质感。', 'black ink engraving, dense cross-hatching, carved line texture', NULL, '/images/tags/engraving.webp', 1.10, 0),
@@ -424,6 +426,26 @@ INSERT IGNORE INTO tag (id, category_id, name, display_name_zh, description_zh, 
   (2060, 1009, 'wood texture', '木材纹理', '表现年轮、木纹方向、雕刻痕迹和自然表面变化。', 'natural wood texture, visible grain, carved detail, organic variation', NULL, '/images/tags/wood-texture.webp', 1.05, 0),
   (2061, 1009, 'translucent material', '半透明材质', '允许部分光线穿透，呈现柔和内部散射与层次。', 'translucent material, subsurface light scattering, soft internal glow', NULL, '/images/tags/translucent-material.webp', 1.10, 0),
   (2062, 1009, 'frosted material', '磨砂材质', '使用细腻粗糙表面散射光线，形成柔和朦胧的透光感。', 'frosted material, diffused transmission, fine matte surface', NULL, '/images/tags/frosted-material.webp', 1.05, 0);
+
+INSERT IGNORE INTO tag (id, category_id, name, display_name_zh, description_zh, prompt_text, negative_prompt_text, preview_image_url, weight, usage_count) VALUES
+  (2063, 1010, 'rainy weather', '雨天', '加入降雨、湿润表面、雨雾和阴天环境光。', 'rainy weather, falling rain, wet reflective surfaces, overcast light', 'dry weather, clear sky', '/images/tags/rainy-weather.webp', 1.05, 0),
+  (2064, 1010, 'snowy scene', '雪景', '使用积雪、飘雪、冷空气与冬季地表反光塑造环境。', 'snowy scene, fresh snow, falling snowflakes, cold winter atmosphere', 'summer vegetation, warm weather', '/images/tags/snowy-scene.webp', 1.05, 0),
+  (2065, 1010, 'foggy atmosphere', '雾天', '通过远景衰减、低对比和雾气层次增加空间深度。', 'foggy atmosphere, layered mist, low contrast distance, atmospheric depth', 'crystal clear distance', '/images/tags/foggy-atmosphere.webp', 1.05, 0),
+  (2066, 1010, 'underwater world', '水下世界', '表现水下光束、悬浮颗粒、流动水体与海洋环境。', 'underwater world, caustic light rays, suspended particles, flowing water', 'dry land, open air', '/images/tags/underwater-world.webp', 1.10, 0),
+  (2067, 1010, 'outer space', '外太空', '加入星空、行星、失重感和宇宙尺度的深色背景。', 'outer space, distant planets, dense star field, zero-gravity atmosphere', 'daytime earth landscape', '/images/tags/outer-space.webp', 1.10, 0),
+  (2068, 1010, 'ancient ruins', '古代遗迹', '使用风化石材、断壁、植物侵蚀和历史痕迹构建遗迹场景。', 'ancient ruins, weathered stone, broken arches, overgrown historical remains', 'modern new construction', '/images/tags/ancient-ruins.webp', 1.05, 0),
+  (2069, 1010, 'desert landscape', '沙漠', '表现沙丘、风蚀地貌、热空气和干燥辽阔的空间。', 'desert landscape, sweeping dunes, wind-shaped sand, dry vast horizon', 'lush wet vegetation', '/images/tags/desert-landscape.webp', 1.05, 0),
+  (2070, 1010, 'lush forest', '茂密森林', '使用层叠植被、潮湿地表、林间光和丰富绿色层次。', 'lush dense forest, layered vegetation, mossy ground, filtered forest light', 'barren landscape', '/images/tags/lush-forest.webp', 1.05, 0),
+  (2071, 1011, 'steampunk', '蒸汽朋克', '融合黄铜机械、蒸汽动力、齿轮和维多利亚工业设计。', 'steampunk aesthetic, brass machinery, steam power, gears, Victorian engineering', NULL, '/images/tags/steampunk.webp', 1.10, 0),
+  (2072, 1011, 'art deco', '装饰艺术', '使用几何对称、金属线条、阶梯形纹样和奢华装饰。', 'Art Deco design, geometric symmetry, metallic accents, stepped ornament', NULL, '/images/tags/art-deco.webp', 1.10, 0),
+  (2073, 1011, 'art nouveau', '新艺术', '使用植物曲线、花卉纹样、流动轮廓和手工装饰。', 'Art Nouveau style, flowing botanical curves, floral ornament, elegant linework', NULL, '/images/tags/art-nouveau.webp', 1.10, 0),
+  (2074, 1011, 'bauhaus', '包豪斯', '强调功能、基础几何、清晰网格和克制的现代配色。', 'Bauhaus design, functional geometry, clear grid, primary color accents', 'ornate decoration', '/images/tags/bauhaus.webp', 1.05, 0),
+  (2075, 1011, 'Song dynasty painting', '宋画', '借鉴宋代山水与花鸟画的细腻观察、留白和淡雅设色。', 'Song dynasty Chinese painting, refined brushwork, poetic negative space, muted mineral colors', NULL, '/images/tags/song-dynasty-painting.webp', 1.10, 0),
+  (2076, 1011, 'ukiyo-e', '浮世绘', '使用木版套色、平涂色块、明确轮廓和日式传统构图。', 'ukiyo-e woodblock print, flat color areas, bold contours, traditional Japanese composition', NULL, '/images/tags/ukiyo-e.webp', 1.10, 0),
+  (2077, 1011, 'Y2K aesthetic', 'Y2K 美学', '使用千禧年科技感、透明塑料、金属色和早期数字界面语言。', 'Y2K aesthetic, translucent plastic, chrome accents, optimistic early-digital design', NULL, '/images/tags/y2k-aesthetic.webp', 1.05, 0),
+  (2078, 1011, 'brutalism', '粗野主义', '强调裸露混凝土、厚重体块、结构重复和强烈尺度感。', 'brutalist architecture, exposed concrete, massive geometric volumes, structural repetition', 'delicate ornament', '/images/tags/brutalism.webp', 1.10, 0),
+  (2079, 1011, 'rococo', '洛可可', '使用轻盈曲线、贝壳纹、粉彩装饰和精致宫廷细节。', 'Rococo style, ornate shell motifs, pastel decoration, elegant courtly detail', NULL, '/images/tags/rococo.webp', 1.10, 0),
+  (2080, 1011, 'synthwave', '合成波', '使用霓虹落日、紫蓝网格、复古未来主义和八十年代电子氛围。', 'synthwave aesthetic, neon sunset, retro grid horizon, 1980s retro-futurism', NULL, '/images/tags/synthwave.webp', 1.10, 0);
 
 INSERT IGNORE INTO tag_preview
   (id, tag_id, image_url, preview_type, scene_key, title_zh, prompt_snapshot, sort_order, is_cover)
@@ -477,3 +499,39 @@ CROSS JOIN (
   SELECT 4, 'object', 'OBJECT', '物品对比', 30
 ) scene
 WHERE tag.id IN (2001, 2002, 2003, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018);
+
+INSERT IGNORE INTO tag_preview
+  (id, tag_id, image_url, preview_type, scene_key, title_zh, prompt_snapshot, sort_order, is_cover)
+VALUES
+  (2006002, 2006, '/images/tags/gallery/soft-light/character.webp', 'COMPARISON', 'CHARACTER', '人物光线对比', 'soft diffused lighting', 10, 0),
+  (2006003, 2006, '/images/tags/gallery/soft-light/interior.webp', 'COMPARISON', 'INTERIOR', '室内光线对比', 'soft diffused lighting', 20, 0),
+  (2007002, 2007, '/images/tags/gallery/rim-light/character.webp', 'COMPARISON', 'CHARACTER', '人物光线对比', 'dramatic rim lighting', 10, 0),
+  (2007003, 2007, '/images/tags/gallery/rim-light/interior.webp', 'COMPARISON', 'INTERIOR', '室内光线对比', 'dramatic rim lighting', 20, 0),
+  (2024002, 2024, '/images/tags/gallery/golden-hour/character.webp', 'COMPARISON', 'CHARACTER', '人物光线对比', 'golden hour lighting', 10, 0),
+  (2024003, 2024, '/images/tags/gallery/golden-hour/interior.webp', 'COMPARISON', 'INTERIOR', '室内光线对比', 'golden hour lighting', 20, 0),
+  (2025002, 2025, '/images/tags/gallery/neon-light/character.webp', 'COMPARISON', 'CHARACTER', '人物光线对比', 'vivid neon lighting', 10, 0),
+  (2025003, 2025, '/images/tags/gallery/neon-light/interior.webp', 'COMPARISON', 'INTERIOR', '室内光线对比', 'vivid neon lighting', 20, 0),
+  (2026002, 2026, '/images/tags/gallery/moonlight/character.webp', 'COMPARISON', 'CHARACTER', '人物光线对比', 'cool silver moonlight', 10, 0),
+  (2026003, 2026, '/images/tags/gallery/moonlight/interior.webp', 'COMPARISON', 'INTERIOR', '室内光线对比', 'cool silver moonlight', 20, 0),
+  (2027002, 2027, '/images/tags/gallery/volumetric-light/character.webp', 'COMPARISON', 'CHARACTER', '人物光线对比', 'volumetric lighting', 10, 0),
+  (2027003, 2027, '/images/tags/gallery/volumetric-light/interior.webp', 'COMPARISON', 'INTERIOR', '室内光线对比', 'volumetric lighting', 20, 0),
+  (2028002, 2028, '/images/tags/gallery/studio-light/character.webp', 'COMPARISON', 'CHARACTER', '人物光线对比', 'professional studio lighting', 10, 0),
+  (2028003, 2028, '/images/tags/gallery/studio-light/interior.webp', 'COMPARISON', 'INTERIOR', '室内光线对比', 'professional studio lighting', 20, 0),
+  (2008002, 2008, '/images/tags/gallery/close-up/character.webp', 'COMPARISON', 'CHARACTER', '人物构图对比', 'close-up composition', 10, 0),
+  (2008003, 2008, '/images/tags/gallery/close-up/architecture.webp', 'COMPARISON', 'ARCHITECTURE', '建筑构图对比', 'close-up composition', 20, 0),
+  (2009002, 2009, '/images/tags/gallery/wide-shot/character.webp', 'COMPARISON', 'CHARACTER', '人物构图对比', 'wide angle composition', 10, 0),
+  (2009003, 2009, '/images/tags/gallery/wide-shot/architecture.webp', 'COMPARISON', 'ARCHITECTURE', '建筑构图对比', 'wide angle composition', 20, 0),
+  (2029002, 2029, '/images/tags/gallery/birds-eye-view/character.webp', 'COMPARISON', 'CHARACTER', '人物构图对比', 'bird''s-eye view', 10, 0),
+  (2029003, 2029, '/images/tags/gallery/birds-eye-view/architecture.webp', 'COMPARISON', 'ARCHITECTURE', '建筑构图对比', 'bird''s-eye view', 20, 0),
+  (2030002, 2030, '/images/tags/gallery/low-angle/character.webp', 'COMPARISON', 'CHARACTER', '人物构图对比', 'low-angle shot', 10, 0),
+  (2030003, 2030, '/images/tags/gallery/low-angle/architecture.webp', 'COMPARISON', 'ARCHITECTURE', '建筑构图对比', 'low-angle shot', 20, 0),
+  (2031002, 2031, '/images/tags/gallery/symmetrical-composition/character.webp', 'COMPARISON', 'CHARACTER', '人物构图对比', 'symmetrical composition', 10, 0),
+  (2031003, 2031, '/images/tags/gallery/symmetrical-composition/architecture.webp', 'COMPARISON', 'ARCHITECTURE', '建筑构图对比', 'symmetrical composition', 20, 0),
+  (2032002, 2032, '/images/tags/gallery/rule-of-thirds/character.webp', 'COMPARISON', 'CHARACTER', '人物构图对比', 'rule of thirds composition', 10, 0),
+  (2032003, 2032, '/images/tags/gallery/rule-of-thirds/architecture.webp', 'COMPARISON', 'ARCHITECTURE', '建筑构图对比', 'rule of thirds composition', 20, 0),
+  (2035002, 2035, '/images/tags/gallery/warm-palette/character.webp', 'COMPARISON', 'CHARACTER', '人物色彩对比', 'warm color palette', 10, 0),
+  (2035003, 2035, '/images/tags/gallery/warm-palette/still-life.webp', 'COMPARISON', 'STILL_LIFE', '静物色彩对比', 'warm color palette', 20, 0),
+  (2036002, 2036, '/images/tags/gallery/cool-palette/character.webp', 'COMPARISON', 'CHARACTER', '人物色彩对比', 'cool color palette', 10, 0),
+  (2036003, 2036, '/images/tags/gallery/cool-palette/still-life.webp', 'COMPARISON', 'STILL_LIFE', '静物色彩对比', 'cool color palette', 20, 0),
+  (2037002, 2037, '/images/tags/gallery/pastel-colors/character.webp', 'COMPARISON', 'CHARACTER', '人物色彩对比', 'soft pastel colors', 10, 0),
+  (2037003, 2037, '/images/tags/gallery/pastel-colors/still-life.webp', 'COMPARISON', 'STILL_LIFE', '静物色彩对比', 'soft pastel colors', 20, 0);

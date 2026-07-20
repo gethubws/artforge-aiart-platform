@@ -178,7 +178,9 @@ const categoryNames = {
   color: '色彩',
   mood: '氛围',
   camera: '镜头',
-  material: '材质'
+  material: '材质',
+  environment: '环境',
+  culture: '时代文化'
 }
 
 const activeCategoryId = ref(null)

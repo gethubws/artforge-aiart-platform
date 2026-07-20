@@ -1,0 +1,37 @@
+USE aiart_codex_platform;
+
+INSERT IGNORE INTO tag_preview
+  (id, tag_id, image_url, preview_type, scene_key, title_zh, prompt_snapshot, sort_order, is_cover)
+VALUES
+  (2006002, 2006, '/images/tags/gallery/soft-light/character.webp', 'COMPARISON', 'CHARACTER', '人物光线对比', 'soft diffused lighting', 10, 0),
+  (2006003, 2006, '/images/tags/gallery/soft-light/interior.webp', 'COMPARISON', 'INTERIOR', '室内光线对比', 'soft diffused lighting', 20, 0),
+  (2007002, 2007, '/images/tags/gallery/rim-light/character.webp', 'COMPARISON', 'CHARACTER', '人物光线对比', 'dramatic rim lighting', 10, 0),
+  (2007003, 2007, '/images/tags/gallery/rim-light/interior.webp', 'COMPARISON', 'INTERIOR', '室内光线对比', 'dramatic rim lighting', 20, 0),
+  (2024002, 2024, '/images/tags/gallery/golden-hour/character.webp', 'COMPARISON', 'CHARACTER', '人物光线对比', 'golden hour lighting', 10, 0),
+  (2024003, 2024, '/images/tags/gallery/golden-hour/interior.webp', 'COMPARISON', 'INTERIOR', '室内光线对比', 'golden hour lighting', 20, 0),
+  (2025002, 2025, '/images/tags/gallery/neon-light/character.webp', 'COMPARISON', 'CHARACTER', '人物光线对比', 'vivid neon lighting', 10, 0),
+  (2025003, 2025, '/images/tags/gallery/neon-light/interior.webp', 'COMPARISON', 'INTERIOR', '室内光线对比', 'vivid neon lighting', 20, 0),
+  (2026002, 2026, '/images/tags/gallery/moonlight/character.webp', 'COMPARISON', 'CHARACTER', '人物光线对比', 'cool silver moonlight', 10, 0),
+  (2026003, 2026, '/images/tags/gallery/moonlight/interior.webp', 'COMPARISON', 'INTERIOR', '室内光线对比', 'cool silver moonlight', 20, 0),
+  (2027002, 2027, '/images/tags/gallery/volumetric-light/character.webp', 'COMPARISON', 'CHARACTER', '人物光线对比', 'volumetric lighting', 10, 0),
+  (2027003, 2027, '/images/tags/gallery/volumetric-light/interior.webp', 'COMPARISON', 'INTERIOR', '室内光线对比', 'volumetric lighting', 20, 0),
+  (2028002, 2028, '/images/tags/gallery/studio-light/character.webp', 'COMPARISON', 'CHARACTER', '人物光线对比', 'professional studio lighting', 10, 0),
+  (2028003, 2028, '/images/tags/gallery/studio-light/interior.webp', 'COMPARISON', 'INTERIOR', '室内光线对比', 'professional studio lighting', 20, 0),
+  (2008002, 2008, '/images/tags/gallery/close-up/character.webp', 'COMPARISON', 'CHARACTER', '人物构图对比', 'close-up composition', 10, 0),
+  (2008003, 2008, '/images/tags/gallery/close-up/architecture.webp', 'COMPARISON', 'ARCHITECTURE', '建筑构图对比', 'close-up composition', 20, 0),
+  (2009002, 2009, '/images/tags/gallery/wide-shot/character.webp', 'COMPARISON', 'CHARACTER', '人物构图对比', 'wide angle composition', 10, 0),
+  (2009003, 2009, '/images/tags/gallery/wide-shot/architecture.webp', 'COMPARISON', 'ARCHITECTURE', '建筑构图对比', 'wide angle composition', 20, 0),
+  (2029002, 2029, '/images/tags/gallery/birds-eye-view/character.webp', 'COMPARISON', 'CHARACTER', '人物构图对比', 'bird''s-eye view', 10, 0),
+  (2029003, 2029, '/images/tags/gallery/birds-eye-view/architecture.webp', 'COMPARISON', 'ARCHITECTURE', '建筑构图对比', 'bird''s-eye view', 20, 0),
+  (2030002, 2030, '/images/tags/gallery/low-angle/character.webp', 'COMPARISON', 'CHARACTER', '人物构图对比', 'low-angle shot', 10, 0),
+  (2030003, 2030, '/images/tags/gallery/low-angle/architecture.webp', 'COMPARISON', 'ARCHITECTURE', '建筑构图对比', 'low-angle shot', 20, 0),
+  (2031002, 2031, '/images/tags/gallery/symmetrical-composition/character.webp', 'COMPARISON', 'CHARACTER', '人物构图对比', 'symmetrical composition', 10, 0),
+  (2031003, 2031, '/images/tags/gallery/symmetrical-composition/architecture.webp', 'COMPARISON', 'ARCHITECTURE', '建筑构图对比', 'symmetrical composition', 20, 0),
+  (2032002, 2032, '/images/tags/gallery/rule-of-thirds/character.webp', 'COMPARISON', 'CHARACTER', '人物构图对比', 'rule of thirds composition', 10, 0),
+  (2032003, 2032, '/images/tags/gallery/rule-of-thirds/architecture.webp', 'COMPARISON', 'ARCHITECTURE', '建筑构图对比', 'rule of thirds composition', 20, 0),
+  (2035002, 2035, '/images/tags/gallery/warm-palette/character.webp', 'COMPARISON', 'CHARACTER', '人物色彩对比', 'warm color palette', 10, 0),
+  (2035003, 2035, '/images/tags/gallery/warm-palette/still-life.webp', 'COMPARISON', 'STILL_LIFE', '静物色彩对比', 'warm color palette', 20, 0),
+  (2036002, 2036, '/images/tags/gallery/cool-palette/character.webp', 'COMPARISON', 'CHARACTER', '人物色彩对比', 'cool color palette', 10, 0),
+  (2036003, 2036, '/images/tags/gallery/cool-palette/still-life.webp', 'COMPARISON', 'STILL_LIFE', '静物色彩对比', 'cool color palette', 20, 0),
+  (2037002, 2037, '/images/tags/gallery/pastel-colors/character.webp', 'COMPARISON', 'CHARACTER', '人物色彩对比', 'soft pastel colors', 10, 0),
+  (2037003, 2037, '/images/tags/gallery/pastel-colors/still-life.webp', 'COMPARISON', 'STILL_LIFE', '静物色彩对比', 'soft pastel colors', 20, 0);

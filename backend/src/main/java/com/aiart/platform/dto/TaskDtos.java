@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public final class TaskDtos {
     private TaskDtos() {
@@ -32,6 +33,9 @@ public final class TaskDtos {
     public record TaskCard(Long id, Long publisherId, String title, String description, String requirementsText,
                            BigDecimal budgetPoints, String status, LocalDateTime deadline,
                            long submissionCount, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    }
+
+    public record TaskPage(List<TaskCard> items, int page, int size, long total, boolean hasNext) {
     }
 
     public record SubmissionView(Long id, Long taskId, Long submitterId, Long artworkId, String artworkTitle,

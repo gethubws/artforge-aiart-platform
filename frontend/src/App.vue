@@ -655,8 +655,8 @@ const generationForm = reactive({
   hrSecondPassSteps: 12
 })
 
-const libraryQuery = reactive({ keyword: '', tagIds: [], visibility: '', status: '', page: 1, size: 12, hasNext: false })
-const communityQuery = reactive({ keyword: '', tagIds: [], page: 1, size: 12, hasNext: false })
+const libraryQuery = reactive({ keyword: '', tagIds: [], visibility: '', status: '', page: 1, size: 12, total: 0, hasNext: false })
+const communityQuery = reactive({ keyword: '', tagIds: [], page: 1, size: 12, total: 0, hasNext: false })
 const myArtworks = ref([])
 const publicArtworks = ref([])
 const selectedArtworkIds = ref(new Set())
@@ -668,8 +668,8 @@ const communityRequestId = ref(0)
 const styleLoading = ref(false)
 const myStylePackages = ref([])
 const marketStylePackages = ref([])
-const styleMarketQuery = reactive({ keyword: '', tagId: null, status: '', sort: 'latest', page: 1, size: 8, hasNext: false })
-const myStyleQuery = reactive({ keyword: '', tagId: null, status: '', sort: 'latest', page: 1, size: 8, hasNext: false })
+const styleMarketQuery = reactive({ keyword: '', tagId: null, status: '', sort: 'latest', page: 1, size: 12, total: 0, hasNext: false })
+const myStyleQuery = reactive({ keyword: '', tagId: null, status: '', sort: 'latest', page: 1, size: 12, total: 0, hasNext: false })
 const stylePackageVersions = ref([])
 const stylePackageReviews = ref([])
 const styleSubmissions = ref([])
@@ -702,12 +702,14 @@ const styleSubmissionContext = ref(null)
 const styleReviewContext = ref(null)
 
 const taskLoading = ref(false)
+const taskRequestIds = { market: 0, my: 0 }
+const taskLoadingRequestId = ref(0)
 const taskMarket = ref([])
 const myTasks = ref([])
 const myTaskSubmissions = ref([])
 const selectedTaskSubmissions = ref([])
-const taskMarketQuery = reactive({ keyword: '', status: 'PUBLISHED', tier: '', sort: 'latest', page: 1, size: 9, hasNext: false })
-const myTaskQuery = reactive({ keyword: '', status: '', tier: '', sort: 'latest', page: 1, size: 9, hasNext: false })
+const taskMarketQuery = reactive({ keyword: '', status: 'PUBLISHED', tier: '', sort: 'latest', page: 1, size: 12, total: 0, hasNext: false })
+const myTaskQuery = reactive({ keyword: '', status: '', tier: '', sort: 'latest', page: 1, size: 12, total: 0, hasNext: false })
 const taskForm = reactive({
   id: null,
   title: '',
@@ -1450,6 +1452,7 @@ async function loadMyArtworks(query) {
     const result = await getMyArtworks(artworkQueryParams(libraryQuery, true))
     if (requestId !== libraryRequestId.value) return
     myArtworks.value = result?.items || []
+    libraryQuery.total = Number(result?.total || 0)
     libraryQuery.hasNext = Boolean(result?.hasNext)
   } catch (error) {
     if (requestId === libraryRequestId.value && !myArtworks.value.length) {
@@ -1468,6 +1471,7 @@ async function loadCommunity(query) {
     const result = await getPublicArtworks(artworkQueryParams(communityQuery, false))
     if (requestId !== communityRequestId.value) return
     publicArtworks.value = result?.items || []
+    communityQuery.total = Number(result?.total || 0)
     communityQuery.hasNext = Boolean(result?.hasNext)
   } catch (error) {
     if (requestId === communityRequestId.value && !publicArtworks.value.length) {
@@ -1485,7 +1489,7 @@ function normalizeStyleQuery(query = {}) {
     status: query.status || '',
     sort: query.sort || 'latest',
     page: Math.max(1, Number(query.page) || 1),
-    size: Math.min(24, Math.max(4, Number(query.size) || 8)),
+    size: Math.min(24, Math.max(4, Number(query.size) || 12)),
     hasNext: Boolean(query.hasNext)
   }
 }
@@ -1515,6 +1519,7 @@ async function loadStylePackages(options = {}) {
       const result = await getMarketStylePackages(styleQueryParams(styleMarketQuery))
       if (requestId !== styleRequestIds.market) return
       marketStylePackages.value = result?.items || []
+      styleMarketQuery.total = Number(result?.total || 0)
       styleMarketQuery.hasNext = Boolean(result?.hasNext)
       return
     }
@@ -1524,6 +1529,7 @@ async function loadStylePackages(options = {}) {
       const result = await getMyStylePackages(styleQueryParams(myStyleQuery))
       if (requestId !== styleRequestIds.my) return
       myStylePackages.value = result?.items || []
+      myStyleQuery.total = Number(result?.total || 0)
       myStyleQuery.hasNext = Boolean(result?.hasNext)
       return
     }
@@ -1537,6 +1543,8 @@ async function loadStylePackages(options = {}) {
     if (marketRequestId !== styleRequestIds.market || myRequestId !== styleRequestIds.my) return
     myStylePackages.value = mine?.items || []
     marketStylePackages.value = market?.items || []
+    myStyleQuery.total = Number(mine?.total || 0)
+    styleMarketQuery.total = Number(market?.total || 0)
     myStyleQuery.hasNext = Boolean(mine?.hasNext)
     styleMarketQuery.hasNext = Boolean(market?.hasNext)
   } catch (error) {
@@ -1563,7 +1571,7 @@ function normalizeTaskQuery(query = {}) {
     tier: query.tier || '',
     sort: query.sort || 'latest',
     page: Math.max(1, Number(query.page) || 1),
-    size: Math.min(24, Math.max(4, Number(query.size) || 9)),
+    size: Math.min(24, Math.max(4, Number(query.size) || 12)),
     hasNext: Boolean(query.hasNext)
   }
 }
@@ -1791,6 +1799,7 @@ async function reviewStyleSubmissionItem({ submission, status, comment }) {
 }
 
 async function loadTasks(options = {}) {
+  const loadingRequestId = ++taskLoadingRequestId.value
   taskLoading.value = true
   try {
     const scope = options.scope || 'all'
@@ -1798,34 +1807,50 @@ async function loadTasks(options = {}) {
     if (scope === 'my' && options.query) Object.assign(myTaskQuery, normalizeTaskQuery(options.query))
 
     if (scope === 'market') {
+      const requestId = ++taskRequestIds.market
       const [market, mineSubs] = await Promise.all([
         getTaskMarket(taskQueryParams(taskMarketQuery)),
         getMyTaskSubmissions()
       ])
-      taskMarket.value = market || []
+      if (requestId !== taskRequestIds.market) return
+      taskMarket.value = market?.items || []
       myTaskSubmissions.value = mineSubs || []
-      taskMarketQuery.hasNext = taskMarket.value.length >= taskMarketQuery.size
+      taskMarketQuery.total = Number(market?.total || 0)
+      taskMarketQuery.hasNext = Boolean(market?.hasNext)
       return
     }
 
     if (scope === 'my') {
-      myTasks.value = (await getMyTasks(taskQueryParams(myTaskQuery))) || []
-      myTaskQuery.hasNext = myTasks.value.length >= myTaskQuery.size
+      const requestId = ++taskRequestIds.my
+      const result = await getMyTasks(taskQueryParams(myTaskQuery))
+      if (requestId !== taskRequestIds.my) return
+      myTasks.value = result?.items || []
+      myTaskQuery.total = Number(result?.total || 0)
+      myTaskQuery.hasNext = Boolean(result?.hasNext)
       return
     }
 
+    const marketRequestId = ++taskRequestIds.market
+    const myRequestId = ++taskRequestIds.my
     const [market, mine, mineSubs] = await Promise.all([
       getTaskMarket(taskQueryParams(taskMarketQuery)),
       getMyTasks(taskQueryParams(myTaskQuery)),
       getMyTaskSubmissions()
     ])
-    taskMarket.value = market || []
-    myTasks.value = mine || []
+    if (marketRequestId !== taskRequestIds.market || myRequestId !== taskRequestIds.my) return
+    taskMarket.value = market?.items || []
+    myTasks.value = mine?.items || []
     myTaskSubmissions.value = mineSubs || []
-    taskMarketQuery.hasNext = taskMarket.value.length >= taskMarketQuery.size
-    myTaskQuery.hasNext = myTasks.value.length >= myTaskQuery.size
+    taskMarketQuery.total = Number(market?.total || 0)
+    myTaskQuery.total = Number(mine?.total || 0)
+    taskMarketQuery.hasNext = Boolean(market?.hasNext)
+    myTaskQuery.hasNext = Boolean(mine?.hasNext)
+  } catch (error) {
+    if (loadingRequestId === taskLoadingRequestId.value && !taskMarket.value.length && !myTasks.value.length) {
+      ElMessage.error(error?.message || '任务列表加载失败')
+    }
   } finally {
-    taskLoading.value = false
+    if (loadingRequestId === taskLoadingRequestId.value) taskLoading.value = false
   }
 }
 

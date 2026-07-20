@@ -1,5 +1,9 @@
 <template>
-  <section class="style-view content-hub-page market-page-shell style-package-page" v-loading="styleLoading">
+  <section
+    class="style-view content-hub-page market-page-shell style-package-page density-page"
+    :class="`density-${density}`"
+    v-loading="styleLoading"
+  >
     <header class="page-hero hub-hero">
       <div class="hero-copy">
         <p class="eyebrow">Style Collection</p>
@@ -46,7 +50,13 @@
           <h2>{{ isMarketView ? '浏览风格成果集合' : '管理你的风格资产' }}</h2>
           <p>{{ isMarketView ? marketSummary : workspaceSummary }}</p>
         </div>
-        <span class="pane-counter">{{ pagerSummary }}</span>
+        <div class="market-summary-tools">
+          <span class="pane-counter">{{ pagerSummary }}</span>
+          <div class="display-density-control">
+            <span>展示密度</span>
+            <el-segmented v-model="density" :options="densityOptions" size="small" />
+          </div>
+        </div>
       </div>
     </section>
 
@@ -130,17 +140,17 @@
     <section class="soft-panel pager-panel">
       <div class="pager-copy">
         <strong>{{ isMarketView ? '风格市场分页' : '我的风格包分页' }}</strong>
-        <span>当前第 {{ currentPage }} 页，每页 {{ pageSize }} 项。</span>
+        <span>共 {{ Number(queryState.total || 0) }} 个风格包，当前第 {{ currentPage }} 页。</span>
       </div>
       <div class="pager-actions">
-        <el-select :model-value="pageSize" class="pager-size-select" @update:model-value="updatePageSize">
-          <el-option label="每页 4 项" :value="4" />
-          <el-option label="每页 8 项" :value="8" />
-          <el-option label="每页 12 项" :value="12" />
-        </el-select>
-        <el-button :disabled="currentPage <= 1" @click="goPrevPage">上一页</el-button>
-        <span class="pager-index">第 {{ currentPage }} 页</span>
-        <el-button :disabled="!props.queryState.hasNext" @click="goNextPage">下一页</el-button>
+        <el-pagination
+          background
+          layout="prev, pager, next"
+          :current-page="currentPage"
+          :page-size="pageSize"
+          :total="Number(queryState.total || 0)"
+          @current-change="changePage"
+        />
       </div>
     </section>
 
@@ -624,6 +634,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { Bell, Collection, Refresh, Search, Star } from '@element-plus/icons-vue'
 import BilingualTagLabel from './BilingualTagLabel.vue'
+import { useDisplayDensity } from '../composables/useDisplayDensity'
 
 const props = defineProps({
   styleForm: { type: Object, required: true },
@@ -682,7 +693,8 @@ const selectedTagId = ref(props.queryState.tagId ?? null)
 const localStatus = ref(props.queryState.status || '')
 const sortMode = ref(props.queryState.sort || 'latest')
 const currentPage = ref(props.queryState.page || 1)
-const pageSize = ref(props.queryState.size || 8)
+const pageSize = ref(props.queryState.size || 12)
+const { density, densityOptions } = useDisplayDensity()
 const activePackId = ref(null)
 const activePreviewId = ref('')
 const packDrawerVisible = ref(false)
@@ -701,7 +713,7 @@ const workspaceSummary = '主页面聚焦预览与筛选，编辑、发布、归
 const isMarketView = computed(() => currentView.value === 'market')
 const sourcePacks = computed(() => (isMarketView.value ? props.marketStylePackages : props.myStylePackages))
 const visiblePacks = computed(() => sourcePacks.value || [])
-const pagerSummary = computed(() => `${visiblePacks.value.length} 项 / 第 ${currentPage.value} 页`)
+const pagerSummary = computed(() => `${Number(props.queryState.total || 0)} 项 / 第 ${currentPage.value} 页`)
 
 const availableTags = computed(() => {
   if (props.allTags?.length) return props.allTags
@@ -769,7 +781,7 @@ const queryKey = (query) => JSON.stringify({
   status: query?.status || '',
   sort: query?.sort || 'latest',
   page: Number(query?.page) || 1,
-  size: Number(query?.size) || 8
+  size: Number(query?.size) || 12
 })
 
 const emitRefresh = () => {
@@ -934,21 +946,8 @@ const openOwnerOps = (pack) => {
   ownerOpsVisible.value = true
 }
 
-const goPrevPage = () => {
-  if (currentPage.value <= 1) return
-  currentPage.value -= 1
-  emitRefresh()
-}
-
-const goNextPage = () => {
-  if (!props.queryState.hasNext) return
-  currentPage.value += 1
-  emitRefresh()
-}
-
-const updatePageSize = (value) => {
-  pageSize.value = Number(value) || 8
-  currentPage.value = 1
+const changePage = (value) => {
+  currentPage.value = Math.max(1, Number(value) || 1)
   emitRefresh()
 }
 
@@ -967,7 +966,7 @@ watch(
     localStatus.value = value?.status || ''
     sortMode.value = value?.sort || 'latest'
     currentPage.value = value?.page || 1
-    pageSize.value = value?.size || 8
+    pageSize.value = value?.size || 12
     lastEmittedQueryKey = queryKey(value || {})
   },
   { deep: true }

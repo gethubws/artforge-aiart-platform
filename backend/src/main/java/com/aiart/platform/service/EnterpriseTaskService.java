@@ -15,9 +15,9 @@ public interface EnterpriseTaskService {
 
     TaskDtos.TaskCard detail(Long viewerId, Long taskId);
 
-    List<TaskDtos.TaskCard> market(int page, int size, TaskDtos.ListQuery query);
+    TaskDtos.TaskPage market(int page, int size, TaskDtos.ListQuery query);
 
-    List<TaskDtos.TaskCard> myTasks(Long userId, int page, int size, TaskDtos.ListQuery query);
+    TaskDtos.TaskPage myTasks(Long userId, int page, int size, TaskDtos.ListQuery query);
 
     TaskDtos.SubmissionView submit(Long userId, Long taskId, TaskDtos.SubmitRequest request);
 

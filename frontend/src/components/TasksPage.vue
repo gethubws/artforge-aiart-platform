@@ -1,5 +1,9 @@
 <template>
-  <section class="tasks-view content-hub-page market-page-shell">
+  <section
+    class="tasks-view content-hub-page market-page-shell density-page"
+    :class="`density-${density}`"
+    v-loading="taskLoading"
+  >
     <header class="page-hero hub-hero">
       <div class="hero-copy">
         <p class="eyebrow">Task Hub</p>
@@ -13,7 +17,7 @@
         <el-button plain @click="$emit('go-related', isMarketView ? 'my-tasks' : 'task-market')">
           {{ isMarketView ? '进入我的任务' : '返回任务市场' }}
         </el-button>
-        <el-button :icon="Refresh" :loading="taskLoading" @click="$emit('refresh', currentQuery())">
+        <el-button :icon="Refresh" :loading="taskLoading" @click="emitRefresh">
           刷新
         </el-button>
         <el-button v-if="!isMarketView" type="primary" @click="openCreateDialog">发布任务</el-button>
@@ -62,7 +66,13 @@
           <h2>{{ isMarketView ? '浏览任务广场' : '管理你的任务资产' }}</h2>
           <p>{{ summaryText }}</p>
         </div>
-        <span class="pane-counter">{{ pagerSummary }}</span>
+        <div class="market-summary-tools">
+          <span class="pane-counter">{{ pagerSummary }}</span>
+          <div class="display-density-control">
+            <span>展示密度</span>
+            <el-segmented v-model="density" :options="densityOptions" size="small" />
+          </div>
+        </div>
       </div>
     </section>
 
@@ -131,17 +141,17 @@
     <section class="soft-panel pager-panel">
       <div class="pager-copy">
         <strong>{{ isMarketView ? '任务列表分页' : '任务资产分页' }}</strong>
-        <span>当前第 {{ currentPage }} 页，每页 {{ pageSize }} 项。</span>
+        <span>共 {{ Number(queryState.total || 0) }} 个任务，当前第 {{ currentPage }} 页。</span>
       </div>
       <div class="pager-actions">
-        <el-select :model-value="pageSize" class="pager-size-select" @update:model-value="updatePageSize">
-          <el-option label="每页 6 项" :value="6" />
-          <el-option label="每页 9 项" :value="9" />
-          <el-option label="每页 12 项" :value="12" />
-        </el-select>
-        <el-button :disabled="currentPage <= 1" @click="goPrevPage">上一页</el-button>
-        <span class="pager-index">第 {{ currentPage }} 页</span>
-        <el-button :disabled="!props.queryState.hasNext" @click="goNextPage">下一页</el-button>
+        <el-pagination
+          background
+          layout="prev, pager, next"
+          :current-page="currentPage"
+          :page-size="pageSize"
+          :total="Number(queryState.total || 0)"
+          @current-change="changePage"
+        />
       </div>
     </section>
 
@@ -449,6 +459,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { Bell, Refresh, Search, Star } from '@element-plus/icons-vue'
+import { useDisplayDensity } from '../composables/useDisplayDensity'
 
 const props = defineProps({
   taskLoading: { type: Boolean, default: false },
@@ -500,12 +511,15 @@ const localStatus = ref(props.queryState.status || '')
 const taskTier = ref(props.queryState.tier || '')
 const sortMode = ref(props.queryState.sort || 'latest')
 const currentPage = ref(props.queryState.page || 1)
-const pageSize = ref(props.queryState.size || 9)
+const pageSize = ref(props.queryState.size || 12)
+const { density, densityOptions } = useDisplayDensity()
 const taskDrawerVisible = ref(false)
 const taskEditorVisible = ref(false)
 const taskSubmitVisible = ref(false)
 const taskReviewVisible = ref(false)
 const activeTaskId = ref(null)
+let queryTimer = null
+let lastEmittedQueryKey = ''
 
 const isMarketView = computed(() => currentView.value === 'market')
 const sourceTasks = computed(() => (isMarketView.value ? props.taskMarket : props.myTasks))
@@ -528,7 +542,7 @@ const summaryText = computed(() => {
     : '在这里集中管理你发布过的任务，创建、编辑和投稿审核都改成按需打开。'
 })
 
-const pagerSummary = computed(() => `${visibleTasks.value.length} 项 / 第 ${currentPage.value} 页`)
+const pagerSummary = computed(() => `${Number(props.queryState.total || 0)} 项 / 第 ${currentPage.value} 页`)
 
 const currentQuery = () => ({
   keyword: keyword.value,
@@ -538,6 +552,21 @@ const currentQuery = () => ({
   page: currentPage.value,
   size: pageSize.value
 })
+
+const queryKey = (query) => JSON.stringify({
+  keyword: query?.keyword || '',
+  status: query?.status || '',
+  tier: query?.tier || '',
+  sort: query?.sort || 'latest',
+  page: Number(query?.page) || 1,
+  size: Number(query?.size) || 12
+})
+
+const emitRefresh = () => {
+  const query = currentQuery()
+  lastEmittedQueryKey = queryKey(query)
+  emit('refresh', query)
+}
 
 const taskStatusText = (status) => {
   const labels = {
@@ -616,22 +645,9 @@ const openSubmissionReview = (task) => {
   taskReviewVisible.value = true
 }
 
-const goPrevPage = () => {
-  if (currentPage.value <= 1) return
-  currentPage.value -= 1
-  emit('refresh', currentQuery())
-}
-
-const goNextPage = () => {
-  if (!props.queryState.hasNext) return
-  currentPage.value += 1
-  emit('refresh', currentQuery())
-}
-
-const updatePageSize = (value) => {
-  pageSize.value = Number(value) || 9
-  currentPage.value = 1
-  emit('refresh', currentQuery())
+const changePage = (value) => {
+  currentPage.value = Math.max(1, Number(value) || 1)
+  emitRefresh()
 }
 
 watch(
@@ -649,14 +665,20 @@ watch(
     taskTier.value = value?.tier || ''
     sortMode.value = value?.sort || 'latest'
     currentPage.value = value?.page || 1
-    pageSize.value = value?.size || 9
+    pageSize.value = value?.size || 12
+    lastEmittedQueryKey = queryKey(value || {})
   },
   { deep: true }
 )
 
 watch([keyword, localStatus, taskTier, sortMode], () => {
-  currentPage.value = 1
-  emit('refresh', currentQuery())
+  window.clearTimeout(queryTimer)
+  queryTimer = window.setTimeout(() => {
+    currentPage.value = 1
+    const query = currentQuery()
+    if (queryKey(query) === lastEmittedQueryKey) return
+    emitRefresh()
+  }, 260)
 })
 
 watch(

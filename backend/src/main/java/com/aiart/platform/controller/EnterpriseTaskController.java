@@ -51,7 +51,7 @@ public class EnterpriseTaskController {
     }
 
     @GetMapping("/market")
-    public ApiResponse<List<TaskDtos.TaskCard>> market(@RequestParam(defaultValue = "1") int page,
+    public ApiResponse<TaskDtos.TaskPage> market(@RequestParam(defaultValue = "1") int page,
                                                        @RequestParam(defaultValue = "20") int size,
                                                        @RequestParam(required = false) String keyword,
                                                        @RequestParam(required = false) String status,
@@ -61,7 +61,7 @@ public class EnterpriseTaskController {
     }
 
     @GetMapping("/my")
-    public ApiResponse<List<TaskDtos.TaskCard>> myTasks(@RequestParam(defaultValue = "1") int page,
+    public ApiResponse<TaskDtos.TaskPage> myTasks(@RequestParam(defaultValue = "1") int page,
                                                         @RequestParam(defaultValue = "20") int size,
                                                         @RequestParam(required = false) String keyword,
                                                         @RequestParam(required = false) String status,

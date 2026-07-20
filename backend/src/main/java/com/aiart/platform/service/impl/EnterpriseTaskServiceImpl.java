@@ -23,6 +23,7 @@ import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -110,7 +111,7 @@ public class EnterpriseTaskServiceImpl implements EnterpriseTaskService {
     }
 
     @Override
-    public List<TaskDtos.TaskCard> market(int page, int size, TaskDtos.ListQuery query) {
+    public TaskDtos.TaskPage market(int page, int size, TaskDtos.ListQuery query) {
         String targetStatus = normalizeStatus(query, true);
         var wrapper = Wrappers.<EnterpriseTask>lambdaQuery();
         if (StringUtils.hasText(targetStatus)) {
@@ -122,7 +123,7 @@ public class EnterpriseTaskServiceImpl implements EnterpriseTaskService {
     }
 
     @Override
-    public List<TaskDtos.TaskCard> myTasks(Long userId, int page, int size, TaskDtos.ListQuery query) {
+    public TaskDtos.TaskPage myTasks(Long userId, int page, int size, TaskDtos.ListQuery query) {
         String targetStatus = normalizeStatus(query, false);
         var wrapper = Wrappers.<EnterpriseTask>lambdaQuery()
                 .eq(EnterpriseTask::getPublisherId, userId);
@@ -251,15 +252,20 @@ public class EnterpriseTaskServiceImpl implements EnterpriseTaskService {
                 .toList();
     }
 
-    private List<TaskDtos.TaskCard> slice(List<TaskDtos.TaskCard> cards, int page, int size) {
+    private TaskDtos.TaskPage slice(List<TaskDtos.TaskCard> cards, int page, int size) {
         int normalizedPage = Math.max(1, page);
         int normalizedSize = Math.min(Math.max(1, size), 30);
         int fromIndex = (normalizedPage - 1) * normalizedSize;
         if (fromIndex >= cards.size()) {
-            return List.of();
+            return new TaskDtos.TaskPage(List.of(), normalizedPage, normalizedSize, cards.size(), false);
         }
         int toIndex = Math.min(cards.size(), fromIndex + normalizedSize);
-        return cards.subList(fromIndex, toIndex);
+        return new TaskDtos.TaskPage(
+                new ArrayList<>(cards.subList(fromIndex, toIndex)),
+                normalizedPage,
+                normalizedSize,
+                cards.size(),
+                toIndex < cards.size());
     }
 
     private boolean matchesKeyword(TaskDtos.TaskCard card, String keyword) {

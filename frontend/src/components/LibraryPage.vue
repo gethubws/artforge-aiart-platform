@@ -1,5 +1,5 @@
 <template>
-  <section class="library-view content-hub-page market-page-shell">
+  <section class="library-view content-hub-page market-page-shell density-page" :class="`density-${density}`">
     <header class="page-hero hub-hero">
       <div class="hero-copy">
         <p class="eyebrow">Gallery</p>
@@ -37,6 +37,13 @@
             <el-option label="审核中" value="PENDING_AUDIT" />
             <el-option label="已归档" value="ARCHIVED" />
           </el-select>
+        </div>
+      </div>
+      <div class="toolbar-meta-row">
+        <span class="pane-counter">共 {{ Number(queryState.total || 0) }} 张作品</span>
+        <div class="display-density-control">
+          <span>展示密度</span>
+          <el-segmented v-model="density" :options="densityOptions" size="small" />
         </div>
       </div>
     </section>
@@ -112,17 +119,17 @@
     <section class="soft-panel pager-panel">
       <div class="pager-copy">
         <strong>作品库分页</strong>
-        <span>当前第 {{ currentPage }} 页，每页 {{ pageSize }} 项。</span>
+        <span>共 {{ Number(queryState.total || 0) }} 张作品，当前第 {{ currentPage }} 页。</span>
       </div>
       <div class="pager-actions">
-        <el-select :model-value="pageSize" class="pager-size-select" @update:model-value="updatePageSize">
-          <el-option label="每页 8 项" :value="8" />
-          <el-option label="每页 12 项" :value="12" />
-          <el-option label="每页 16 项" :value="16" />
-        </el-select>
-        <el-button :disabled="currentPage <= 1" @click="goPrevPage">上一页</el-button>
-        <span class="pager-index">第 {{ currentPage }} 页</span>
-        <el-button :disabled="!queryState.hasNext" @click="goNextPage">下一页</el-button>
+        <el-pagination
+          background
+          layout="prev, pager, next"
+          :current-page="currentPage"
+          :page-size="pageSize"
+          :total="Number(queryState.total || 0)"
+          @current-change="changePage"
+        />
       </div>
     </section>
   </section>
@@ -132,6 +139,7 @@
 import { Check, Refresh, Search, Star } from '@element-plus/icons-vue'
 import { ref, watch } from 'vue'
 import BilingualTagLabel from './BilingualTagLabel.vue'
+import { useDisplayDensity } from '../composables/useDisplayDensity'
 
 const props = defineProps({
   queryState: { type: Object, required: true },
@@ -165,6 +173,7 @@ const visibility = ref(props.queryState.visibility || '')
 const status = ref(props.queryState.status || '')
 const currentPage = ref(props.queryState.page || 1)
 const pageSize = ref(props.queryState.size || 12)
+const { density, densityOptions } = useDisplayDensity()
 let queryTimer = null
 let lastEmittedQueryKey = ''
 
@@ -204,21 +213,8 @@ function currentQuery() {
   }
 }
 
-function goPrevPage() {
-  if (currentPage.value <= 1) return
-  currentPage.value -= 1
-  emitRefresh(currentQuery())
-}
-
-function goNextPage() {
-  if (!props.queryState.hasNext) return
-  currentPage.value += 1
-  emitRefresh(currentQuery())
-}
-
-function updatePageSize(value) {
-  pageSize.value = Number(value) || 12
-  currentPage.value = 1
+function changePage(value) {
+  currentPage.value = Math.max(1, Number(value) || 1)
   emitRefresh(currentQuery())
 }
 

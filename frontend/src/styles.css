@@ -1067,7 +1067,7 @@ h2 {
 
 .gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(var(--gallery-card-min, 290px), 1fr));
   gap: 14px;
 }
 
@@ -1914,6 +1914,52 @@ h2 {
   gap: 18px;
 }
 
+.density-large {
+  --gallery-card-min: 400px;
+  --style-card-min: 410px;
+  --task-card-min: 390px;
+}
+
+.density-standard {
+  --gallery-card-min: 300px;
+  --style-card-min: 310px;
+  --task-card-min: 300px;
+}
+
+.density-compact {
+  --gallery-card-min: 250px;
+  --style-card-min: 245px;
+  --task-card-min: 245px;
+}
+
+.toolbar-meta-row,
+.market-summary-tools,
+.display-density-control {
+  display: flex;
+  align-items: center;
+}
+
+.toolbar-meta-row,
+.market-summary-tools {
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.display-density-control {
+  flex: 0 0 auto;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.display-density-control .el-segmented {
+  --el-segmented-bg-color: rgba(237, 242, 238, 0.92);
+  --el-segmented-item-selected-bg-color: #ffffff;
+  --el-segmented-item-selected-color: var(--primary-strong);
+  min-width: 176px;
+}
+
 .hub-toolbar-panel {
   padding: 18px 20px;
 }
@@ -2021,7 +2067,7 @@ h2 {
 }
 
 .task-card-grid {
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(var(--task-card-min, 290px), 1fr));
 }
 
 .style-plaza-grid {
@@ -2841,7 +2887,7 @@ h2 {
 
 .style-pack-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--style-card-min, 310px), 1fr));
   gap: 18px;
 }
 
@@ -3439,10 +3485,22 @@ h2 {
   }
 
   .hub-summary-row,
+  .toolbar-meta-row,
+  .market-summary-tools,
   .task-plaza-metrics,
   .drawer-topline {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .display-density-control {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .display-density-control .el-segmented {
+    min-width: 0;
+    width: min(220px, 68vw);
   }
 
   .style-stat-strip.large {
@@ -3644,8 +3702,7 @@ h2 {
   font-size: 14px;
 }
 
-.pager-copy span,
-.pager-index {
+.pager-copy span {
   color: var(--muted);
   font-size: 12px;
 }
@@ -3656,10 +3713,6 @@ h2 {
   gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
-}
-
-.pager-size-select {
-  width: 124px;
 }
 
 .account-shell {

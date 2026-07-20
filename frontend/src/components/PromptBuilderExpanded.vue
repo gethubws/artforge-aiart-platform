@@ -191,7 +191,9 @@ const categoryNames = {
   subject: '主体',
   lighting: '光线',
   composition: '构图',
-  quality: '质量'
+  quality: '质量',
+  color: '色彩',
+  mood: '氛围'
 }
 
 const activeCategoryId = ref(null)

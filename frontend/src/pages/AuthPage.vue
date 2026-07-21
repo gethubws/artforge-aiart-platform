@@ -6,25 +6,48 @@
           <span class="brand-badge-mark"><MagicStick /></span>
           <span>ArtForge</span>
         </div>
-        <h1>把生成、整理、协作和运营收进同一个创作后台。</h1>
+        <h1>从提示词到可交付资源包，让 AI 图像创作成为可复用资产。</h1>
         <p>
-          登录后会直接进入平台主界面，在同一套工作流里管理 Forge 生图、作品沉淀、
-          风格包分发和任务协作。
+          ArtForge 把 Forge 生图、作品沉淀、统一风格资源共创、任务协作和积分交易
+          放进同一套工作流，让一次创作能够继续被整理、组合和使用。
         </p>
       </div>
 
-      <div class="auth-metric-row">
-        <div class="auth-metric-card">
-          <strong>Forge</strong>
-          <span>模型、LoRA、VAE 和高级参数统一接入</span>
+      <div class="auth-pack-showcase">
+        <div class="auth-pack-gallery" aria-label="翡翠童话森林资源包预览">
+          <img
+            class="auth-pack-cover"
+            src="/images/style-packs/emerald-fable/cover.png"
+            alt="翡翠童话森林风格资源包封面"
+          />
+          <img src="/images/style-packs/emerald-fable/vegetation-01.png" alt="翡翠童话森林植被资源" />
+          <img src="/images/style-packs/emerald-fable/architecture-01.png" alt="翡翠童话森林建筑资源" />
+          <img src="/images/style-packs/emerald-fable/characters-01.png" alt="翡翠童话森林角色资源" />
         </div>
-        <div class="auth-metric-card">
-          <strong>Style Pack</strong>
-          <span>发布、版本、评价、兑换与投稿闭环</span>
-        </div>
-        <div class="auth-metric-card">
-          <strong>Task Flow</strong>
-          <span>任务发布、投稿审核、奖励发放一体化</span>
+
+        <div class="auth-pack-copy">
+          <p class="auth-pack-label">平台示例资源包</p>
+          <h2>翡翠童话森林</h2>
+          <p>
+            一套可以直接浏览、购买和持续协作维护的统一风格游戏美术资源，包含从环境搭建到界面表现所需的多类素材。
+          </p>
+
+          <div class="auth-pack-stats">
+            <div>
+              <strong>32</strong>
+              <span>项资源</span>
+            </div>
+            <div>
+              <strong>8</strong>
+              <span>个类目</span>
+            </div>
+            <div>
+              <strong>版本化</strong>
+              <span>协作交付</span>
+            </div>
+          </div>
+
+          <p class="auth-pack-categories">植被 · 建筑 · 角色 · 道具 · 生物 · 地形 · UI · 特效</p>
         </div>
       </div>
 
@@ -63,7 +86,7 @@
             v-model="authForm.password"
             type="password"
             show-password
-            autocomplete="current-password"
+            :autocomplete="authMode === 'login' ? 'current-password' : 'new-password'"
             placeholder="请输入密码"
           />
         </el-form-item>
@@ -129,7 +152,7 @@
 import '../auth-page.css'
 import { computed, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Key, MagicStick, Opportunity, PictureRounded, SetUp } from '@element-plus/icons-vue'
+import { Key, MagicStick, Opportunity, SetUp } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '../stores/auth'
 
@@ -156,24 +179,19 @@ const redirectTarget = computed(() => {
 
 const highlights = [
   {
-    title: 'Forge 深度控制',
-    description: '模型、LoRA、VAE、高清修复和高级参数都集中在同一个工作台里。',
+    title: '可控生成',
+    description: '结构化提示词、模型与高级参数集中在同一个 Forge 工作台。',
     icon: MagicStick
   },
   {
-    title: '风格包与资源运营',
-    description: '支持风格包发布、版本记录、评价、兑换和作品收录，形成持续供给。',
+    title: '资源包共创',
+    description: '统一风格资源支持版本、协作者、授权、兑换与交付清单。',
     icon: SetUp
   },
   {
-    title: '企业任务协作',
-    description: '从需求发布、投稿审核到奖励发放，任务市场已经接入主流程。',
+    title: '任务与社区',
+    description: '从需求发布、投稿审核到作品展示、收藏订阅和奖励流转。',
     icon: Opportunity
-  },
-  {
-    title: '作品资产沉淀',
-    description: '图库、广场、模型资源页与收藏偏好会持续积累，让平台越用越完整。',
-    icon: PictureRounded
   }
 ]
 

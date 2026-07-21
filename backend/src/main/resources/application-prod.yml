@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    password: ${AIART_DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${AIART_DB_POOL_SIZE:20}
+      minimum-idle: ${AIART_DB_MIN_IDLE:4}
+      connection-timeout: 30000
+  servlet:
+    multipart:
+      max-file-size: ${AIART_MAX_FILE_SIZE:50MB}
+      max-request-size: ${AIART_MAX_REQUEST_SIZE:100MB}
+
+server:
+  compression:
+    enabled: true
+    min-response-size: 2048
+
+aiart:
+  jwt:
+    secret: ${AIART_JWT_SECRET}
+
+logging:
+  level:
+    root: INFO
+    com.aiart.platform: INFO

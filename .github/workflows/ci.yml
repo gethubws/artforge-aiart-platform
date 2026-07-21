@@ -2,34 +2,27 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [master, "codex/**"]
   pull_request:
 
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+permissions:
+  contents: read
 
 jobs:
   backend:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
           cache: maven
       - name: Test backend
-        run: mvn --batch-mode test
+        run: mvn -B -f backend/pom.xml test
 
   frontend:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -37,10 +30,23 @@ jobs:
           version: 10
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm --dir frontend install --frozen-lockfile
       - name: Build frontend
-        run: pnpm build
+        run: pnpm --dir frontend build
+
+  compose:
+    runs-on: ubuntu-latest
+    env:
+      AIART_DB_PASSWORD: compose-check-db
+      AIART_DB_ROOT_PASSWORD: compose-check-root
+      AIART_JWT_SECRET: compose-check-secret-at-least-32-bytes
+      AIART_MINIO_ACCESS_KEY: composecheck
+      AIART_MINIO_SECRET_KEY: compose-check-minio-secret
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Docker Compose
+        run: docker compose config --quiet

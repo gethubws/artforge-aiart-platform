@@ -13,7 +13,7 @@
 
     <groupId>com.aiart</groupId>
     <artifactId>aiart-platform</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>1.5.0-SNAPSHOT</version>
     <name>aiart-platform</name>
     <description>AI art creation community platform</description>
 
@@ -21,6 +21,7 @@
         <java.version>17</java.version>
         <mybatis-plus.version>3.5.7</mybatis-plus.version>
         <jjwt.version>0.12.5</jjwt.version>
+        <minio.version>8.5.17</minio.version>
     </properties>
 
     <dependencies>
@@ -43,6 +44,10 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
         <dependency>
             <groupId>com.mysql</groupId>
@@ -70,6 +75,11 @@
             <artifactId>jjwt-jackson</artifactId>
             <version>${jjwt.version}</version>
             <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>${minio.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

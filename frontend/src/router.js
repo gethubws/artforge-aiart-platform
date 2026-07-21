@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import AuthPage from './pages/AuthPage.vue'
-import PlatformPage from './pages/PlatformPage.vue'
 import { useAuthStore } from './stores/auth'
+
+const AuthPage = () => import('./pages/AuthPage.vue')
+const PlatformPage = () => import('./pages/PlatformPage.vue')
 
 const routes = [
   {

@@ -28,6 +28,7 @@ import com.aiart.platform.mapper.StylePackageVersionAssetMapper;
 import com.aiart.platform.mapper.TagMapper;
 import com.aiart.platform.mapper.UserMapper;
 import com.aiart.platform.service.PointService;
+import com.aiart.platform.service.ResourceAssetStorageService;
 import com.aiart.platform.service.StylePackageService;
 import com.aiart.platform.service.UserEngagementService;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -49,6 +50,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -69,6 +71,7 @@ public class StylePackageServiceImpl implements StylePackageService {
     private final UserMapper userMapper;
     private final PointService pointService;
     private final UserEngagementService userEngagementService;
+    private final ResourceAssetStorageService resourceAssetStorageService;
 
     @Override
     @Transactional
@@ -315,6 +318,35 @@ public class StylePackageServiceImpl implements StylePackageService {
         notifyStyleWatchers(stylePackage, userId, Set.of(), "STYLE_RESOURCE_ARCHIVED", "风格资源包资源已归档",
                 "风格资源包《" + stylePackage.getName() + "》归档了资源《" + asset.getName() + "》。");
         return assetView(asset, true);
+    }
+
+    @Override
+    public StylePackageDtos.AssetUploadView uploadAssetFile(Long userId, Long packageId, MultipartFile file) {
+        requireEditable(userId, packageId);
+        ResourceAssetStorageService.UploadedAsset uploaded = resourceAssetStorageService.save(file);
+        return new StylePackageDtos.AssetUploadView(
+                uploaded.reference(),
+                uploaded.originalFilename(),
+                uploaded.contentType(),
+                uploaded.size());
+    }
+
+    @Override
+    public StylePackageDtos.AssetDownload assetDownload(Long userId, Long packageId, Long assetId) {
+        StylePackage stylePackage = readablePackage(userId, packageId);
+        boolean downloadable = canEditPackage(userId, packageId) || isFree(stylePackage) || hasAccess(userId, packageId);
+        if (!downloadable) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "Purchase this resource package before downloading files");
+        }
+        StylePackageAsset asset = requireActiveAsset(packageId, assetId);
+        if (!StringUtils.hasText(asset.getFileUrl())) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "This resource does not have a downloadable file");
+        }
+        String format = StringUtils.hasText(asset.getFileFormat()) ? asset.getFileFormat().toLowerCase() : "bin";
+        return new StylePackageDtos.AssetDownload(
+                asset.getFileUrl(),
+                asset.getName() + "." + format,
+                contentTypeFor(format));
     }
 
     @Override
@@ -1147,6 +1179,19 @@ public class StylePackageServiceImpl implements StylePackageService {
             return null;
         }
         return value.trim();
+    }
+
+    private String contentTypeFor(String format) {
+        return switch (format) {
+            case "png" -> "image/png";
+            case "jpg", "jpeg" -> "image/jpeg";
+            case "webp" -> "image/webp";
+            case "gif" -> "image/gif";
+            case "zip" -> "application/zip";
+            case "json" -> "application/json";
+            case "txt" -> "text/plain";
+            default -> "application/octet-stream";
+        };
     }
 
     private boolean isFree(StylePackage stylePackage) {

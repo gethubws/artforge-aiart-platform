@@ -4386,6 +4386,40 @@ h2 {
   display: block;
 }
 
+.admin-operation-user {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-operation-user strong {
+  color: var(--ink-strong);
+  font-size: 13px;
+}
+
+.admin-operation-user small {
+  color: var(--ink-muted);
+  font-size: 11px;
+}
+
+.admin-operation-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 8px;
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  border-radius: 6px;
+  color: #1d4ed8;
+  background: rgba(239, 246, 255, 0.82);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-operation-route {
+  color: var(--ink-soft);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
 .admin-user-cell strong {
   color: #2d3931;
   font-size: 12px;

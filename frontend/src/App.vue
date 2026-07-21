@@ -328,6 +328,9 @@
         :admin-user-loading="adminUserLoading"
         :admin-user-page="adminUserPage"
         :admin-user-query="adminUserQuery"
+        :admin-operation-loading="adminOperationLoading"
+        :admin-operation-page="adminOperationPage"
+        :admin-operation-query="adminOperationQuery"
         :category-form="categoryForm"
         :tag-form="tagForm"
         :admin-tag-tree="adminTagTree"
@@ -349,6 +352,9 @@
         @search-admin-users="searchAdminUsers"
         @change-admin-user-page="changeAdminUserPage"
         @save-admin-user="saveAdminUser"
+        @load-admin-operations="loadAdminOperations"
+        @search-admin-operations="searchAdminOperations"
+        @change-admin-operation-page="changeAdminOperationPage"
         @navigate-platform="activateView"
         @save-tag-category="saveTagCategory"
         @reset-tag-form="resetTagForm"
@@ -572,7 +578,7 @@ import {
   updateTask
 } from './api/tasks'
 import { claimDailyPoints, getPointAccount } from './api/points'
-import { getAdminDashboard, getAdminUsers, updateAdminUser } from './api/admin'
+import { getAdminDashboard, getAdminOperations, getAdminUsers, updateAdminUser } from './api/admin'
 import { getMyAudits, getPendingAudits, reviewAudit } from './api/audits'
 import {
   getFavoriteTargets,
@@ -754,6 +760,9 @@ const tagAnalytics = ref({ topTags: [], topCombinations: [], searchKeywords: [] 
 const adminUserLoading = ref(false)
 const adminUserPage = ref({ items: [], page: 1, size: 20, total: 0, pages: 0 })
 const adminUserQuery = reactive({ keyword: '', role: '', status: '', page: 1, size: 20 })
+const adminOperationLoading = ref(false)
+const adminOperationPage = ref({ items: [], page: 1, size: 20, total: 0, pages: 0 })
+const adminOperationQuery = reactive({ action: '', targetType: '', page: 1, size: 20 })
 const adminTagTree = ref([])
 const pendingAudits = ref([])
 const myAudits = ref([])
@@ -2130,13 +2139,14 @@ async function refreshAdminData() {
   auditLoading.value = true
   adminDashboardLoading.value = true
   try {
-    const [dashboard, pending, mine, adminTags, analytics, users] = await Promise.all([
+    const [dashboard, pending, mine, adminTags, analytics, users, operations] = await Promise.all([
       getAdminDashboard(),
       getPendingAudits(),
       getMyAudits(),
       getAdminTagTree(),
       getTagAnalytics(),
-      getAdminUsers(adminUserQuery)
+      getAdminUsers(adminUserQuery),
+      getAdminOperations(adminOperationQuery)
     ])
     adminDashboard.value = normalizeDashboard(dashboard)
     pendingAudits.value = pending || []
@@ -2148,6 +2158,7 @@ async function refreshAdminData() {
       searchKeywords: analytics?.searchKeywords || []
     }
     adminUserPage.value = normalizeAdminUserPage(users)
+    adminOperationPage.value = normalizeAdminOperationPage(operations)
   } finally {
     auditLoading.value = false
     adminDashboardLoading.value = false
@@ -2192,6 +2203,38 @@ function normalizeAdminUserPage(data) {
     total: Number(data?.total || 0),
     pages: Number(data?.pages || 0)
   }
+}
+
+function normalizeAdminOperationPage(data) {
+  return {
+    items: data?.items || [],
+    page: Number(data?.page || 1),
+    size: Number(data?.size || adminOperationQuery.size),
+    total: Number(data?.total || 0),
+    pages: Number(data?.pages || 0)
+  }
+}
+
+async function loadAdminOperations() {
+  if (currentUser.value?.role !== 'ADMIN' || adminOperationLoading.value) return
+  adminOperationLoading.value = true
+  try {
+    adminOperationPage.value = normalizeAdminOperationPage(await getAdminOperations(adminOperationQuery))
+  } catch (error) {
+    ElMessage.error(error?.message || '加载操作日志失败')
+  } finally {
+    adminOperationLoading.value = false
+  }
+}
+
+async function searchAdminOperations() {
+  adminOperationQuery.page = 1
+  await loadAdminOperations()
+}
+
+async function changeAdminOperationPage(page) {
+  adminOperationQuery.page = page
+  await loadAdminOperations()
 }
 
 async function loadAdminUsers() {

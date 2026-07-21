@@ -73,7 +73,19 @@ scripts/                 演示数据辅助脚本
 
 ## 快速开始
 
-### 1. 环境要求
+### Docker Compose（推荐）
+
+```powershell
+Copy-Item .env.docker.example .env.docker
+# 修改 .env.docker 中的数据库、JWT 和 MinIO 密钥
+docker compose --env-file .env.docker up -d --build
+```
+
+平台默认运行于 `http://127.0.0.1:5174`。完整配置、备份和升级方法见 [部署与运维](docs/DEPLOYMENT.md)。
+
+### 手动启动
+
+#### 1. 环境要求
 
 - JDK 17
 - Node.js 20.19+ 或 22+
@@ -82,7 +94,7 @@ scripts/                 演示数据辅助脚本
 - Redis 7
 - 启用 API 的 Forge，默认地址为 `http://127.0.0.1:7860`
 
-### 2. 初始化数据库
+#### 2. 初始化数据库
 
 ```powershell
 mysql -u root -p < database/schema.sql
@@ -90,9 +102,9 @@ mysql -u root -p < database/schema.sql
 
 默认数据库名为 `aiart_codex_platform`。已有数据库按时间顺序执行 `database/migrations/` 中尚未应用的脚本。
 
-本版本新增 `20260721_style_package_resource_assets.sql`，会创建资源修订和版本清单表。MySQL 8.0.44 可重复执行该迁移。
+资源包升级使用 `20260721_style_package_resource_assets.sql`，生产基础版本另新增 `20260721_admin_operation_log.sql`。已有数据库应按文件名顺序执行尚未应用的迁移；全新数据库直接导入 `database/schema.sql`。
 
-### 3. 配置并启动后端
+#### 3. 配置并启动后端
 
 根据 [.env.example](.env.example) 设置环境变量，至少应配置数据库密码和新的 JWT 密钥。
 
@@ -103,7 +115,7 @@ cd backend
 
 后端默认运行于 `http://127.0.0.1:8080`。
 
-### 4. 启动前端
+#### 4. 启动前端
 
 ```powershell
 cd frontend
@@ -113,11 +125,11 @@ pnpm dev
 
 前端默认运行于 `http://127.0.0.1:5173`。开发服务器会把 `/api` 与 `/uploads` 代理到后端。
 
-### 5. 初始化管理员
+#### 5. 初始化管理员
 
 首次部署时，在登录页打开“管理员初始化”，创建系统中的第一个管理员账号。系统已有管理员后，该接口会拒绝再次初始化。登录后从右上角头像菜单进入“后台审核”。
 
-### 6. 导入示例资源包
+#### 6. 导入示例资源包
 
 仓库包含一个可选的“翡翠童话森林”示例资源包。先设置 `AIART_IMAGE_API_KEY` 生成或补齐图片，再启动后端运行：
 
@@ -131,6 +143,7 @@ AIART_EMERALD_PASSWORD='set-a-local-demo-password' node scripts/seed-emerald-fab
 ## 文档
 
 - [完整安装与配置](docs/SETUP.md)
+- [Docker 部署与运维](docs/DEPLOYMENT.md)
 - [产品路线图](docs/ROADMAP.md)
 - [标签图库扩展计划](docs/TAG_LIBRARY_EXPANSION_PLAN.md)
 - [版本记录](CHANGELOG.md)
@@ -154,4 +167,4 @@ pnpm build
 
 ## 当前状态
 
-`v1.4.1` 已将风格包升级为可交付、可购买、可版本化的风格资源包，并补齐完整示例资源与部署安全约束。核心业务链路已经可用，后续重点是自动化测试、对象存储、支付方案和真实运营数据验证。
+`v1.5.0` 在资源包业务基础上补齐 Docker Compose、MinIO/本地对象存储、私有资源鉴权下载、登录限流、管理员操作日志、自动化测试和 GitHub Actions。当前版本可作为单机生产部署基线；真实支付、提现、CDN 与大规模集群仍属于后续范围。

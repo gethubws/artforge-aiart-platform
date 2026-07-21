@@ -20,6 +20,10 @@ frontend/.vite/
 output/imagegen/
 tmp/
 
+# Private research and implementation documents
+论文.docx
+代码实现文档/
+
 # IDE
 .idea/
 .vscode/

@@ -89,6 +89,12 @@ public final class StylePackageDtos {
             @NotNull @Size(min = 1, max = 100) List<@Valid AssetSaveRequest> assets) {
     }
 
+    public record AssetUploadView(String fileUrl, String originalFilename, String contentType, long size) {
+    }
+
+    public record AssetDownload(String fileUrl, String filename, String contentType) {
+    }
+
     public record AssetPreview(Long id, String logicalKey, String name, String categoryKey,
                                String previewImageUrl, String thumbnailUrl, Integer revisionNumber) {
     }

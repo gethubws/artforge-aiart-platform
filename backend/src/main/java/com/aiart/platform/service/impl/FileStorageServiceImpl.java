@@ -3,13 +3,16 @@ package com.aiart.platform.service.impl;
 import com.aiart.platform.exception.BusinessException;
 import com.aiart.platform.exception.ErrorCode;
 import com.aiart.platform.service.FileStorageService;
-import org.springframework.beans.factory.annotation.Value;
+import com.aiart.platform.storage.ObjectStorageService;
+import com.aiart.platform.storage.StorageReferenceCodec;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.util.Base64;
 import java.util.UUID;
@@ -17,9 +20,10 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
+@RequiredArgsConstructor
 public class FileStorageServiceImpl implements FileStorageService {
-    @Value("${aiart.storage.upload-root:uploads}")
-    private String uploadRoot;
+    private final ObjectStorageService objectStorageService;
+    private final com.aiart.platform.storage.StorageProperties storageProperties;
 
     @Override
     public String saveBase64Png(String base64Image) {
@@ -27,13 +31,12 @@ public class FileStorageServiceImpl implements FileStorageService {
             String cleaned = clean(base64Image);
             byte[] bytes = Base64.getDecoder().decode(cleaned);
             LocalDate today = LocalDate.now();
-            Path dir = Path.of(uploadRoot, "generated", String.valueOf(today.getYear()), two(today.getMonthValue()), two(today.getDayOfMonth()));
-            Files.createDirectories(dir);
             String filename = UUID.randomUUID() + ".png";
-            Path target = dir.resolve(filename);
-            Files.write(target, bytes);
-            return "/uploads/generated/" + today.getYear() + "/" + two(today.getMonthValue()) + "/" + two(today.getDayOfMonth()) + "/" + filename;
-        } catch (IllegalArgumentException | IOException ex) {
+            String key = "generated/" + today.getYear() + "/" + two(today.getMonthValue()) + "/"
+                    + two(today.getDayOfMonth()) + "/" + filename;
+            return objectStorageService.storePublic(key, "image/png", new ByteArrayInputStream(bytes), bytes.length)
+                    .publicUrl();
+        } catch (IllegalArgumentException ex) {
             throw new BusinessException(ErrorCode.FILE_WRITE_FAILED, ex.getMessage());
         }
     }
@@ -47,14 +50,16 @@ public class FileStorageServiceImpl implements FileStorageService {
         if (!StringUtils.hasText(contentType) || !contentType.toLowerCase().startsWith("image/")) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Only image files are supported");
         }
+        if (file.getSize() > storageProperties.getMaxAssetBytes()) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Preview image exceeds the configured size limit");
+        }
         try {
             LocalDate today = LocalDate.now();
-            Path dir = Path.of(uploadRoot, "tag-previews", String.valueOf(today.getYear()), two(today.getMonthValue()));
-            Files.createDirectories(dir);
             String extension = extension(file.getOriginalFilename(), contentType);
+            validateImageFile(file, extension, contentType);
             String filename = UUID.randomUUID() + extension;
-            Files.copy(file.getInputStream(), dir.resolve(filename), StandardCopyOption.REPLACE_EXISTING);
-            return "/uploads/tag-previews/" + today.getYear() + "/" + two(today.getMonthValue()) + "/" + filename;
+            String key = "tag-previews/" + today.getYear() + "/" + two(today.getMonthValue()) + "/" + filename;
+            return objectStorageService.storePublic(key, contentType, file.getInputStream(), file.getSize()).publicUrl();
         } catch (IOException ex) {
             throw new BusinessException(ErrorCode.FILE_WRITE_FAILED, ex.getMessage());
         }
@@ -62,11 +67,19 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public void deleteStoredFile(String fileUrl) {
-        if (!StringUtils.hasText(fileUrl) || !fileUrl.startsWith("/uploads/")) {
+        if (!StringUtils.hasText(fileUrl)) {
+            return;
+        }
+        String managedReference = StorageReferenceCodec.referenceFromPublicUrl(fileUrl);
+        if (managedReference != null) {
+            objectStorageService.delete(managedReference);
+            return;
+        }
+        if (!fileUrl.startsWith("/uploads/")) {
             return;
         }
         try {
-            Path root = Path.of(uploadRoot).toAbsolutePath().normalize();
+            Path root = Path.of(storageProperties.getUploadRoot()).toAbsolutePath().normalize();
             Path target = root.resolve(fileUrl.substring("/uploads/".length())).normalize();
             if (target.startsWith(root)) {
                 Files.deleteIfExists(target);
@@ -102,5 +115,46 @@ public class FileStorageServiceImpl implements FileStorageService {
             case "image/gif" -> ".gif";
             default -> ".png";
         };
+    }
+
+    private void validateImageFile(MultipartFile file, String extension, String contentType) {
+        String normalizedType = contentType.toLowerCase();
+        boolean typeMatches = switch (extension) {
+            case ".png" -> "image/png".equals(normalizedType);
+            case ".jpg", ".jpeg" -> "image/jpeg".equals(normalizedType);
+            case ".webp" -> "image/webp".equals(normalizedType);
+            case ".gif" -> "image/gif".equals(normalizedType);
+            default -> false;
+        };
+        if (!typeMatches) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Preview image extension does not match its content type");
+        }
+        byte[] header = new byte[12];
+        try (InputStream inputStream = file.getInputStream()) {
+            int length = inputStream.read(header);
+            boolean signatureMatches = switch (extension) {
+                case ".png" -> length >= 8
+                        && Byte.toUnsignedInt(header[0]) == 0x89
+                        && header[1] == 'P' && header[2] == 'N' && header[3] == 'G'
+                        && Byte.toUnsignedInt(header[4]) == 0x0D && Byte.toUnsignedInt(header[5]) == 0x0A
+                        && Byte.toUnsignedInt(header[6]) == 0x1A && Byte.toUnsignedInt(header[7]) == 0x0A;
+                case ".jpg", ".jpeg" -> length >= 3
+                        && Byte.toUnsignedInt(header[0]) == 0xFF
+                        && Byte.toUnsignedInt(header[1]) == 0xD8
+                        && Byte.toUnsignedInt(header[2]) == 0xFF;
+                case ".gif" -> length >= 6
+                        && header[0] == 'G' && header[1] == 'I' && header[2] == 'F'
+                        && header[3] == '8' && (header[4] == '7' || header[4] == '9') && header[5] == 'a';
+                case ".webp" -> length >= 12
+                        && header[0] == 'R' && header[1] == 'I' && header[2] == 'F' && header[3] == 'F'
+                        && header[8] == 'W' && header[9] == 'E' && header[10] == 'B' && header[11] == 'P';
+                default -> false;
+            };
+            if (!signatureMatches) {
+                throw new BusinessException(ErrorCode.BAD_REQUEST, "Preview image content does not match its declared type");
+            }
+        } catch (IOException ex) {
+            throw new BusinessException(ErrorCode.FILE_WRITE_FAILED, ex.getMessage());
+        }
     }
 }

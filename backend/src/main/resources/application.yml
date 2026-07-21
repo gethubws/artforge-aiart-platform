@@ -1,5 +1,7 @@
 server:
   port: 8080
+  forward-headers-strategy: framework
+  shutdown: graceful
 
 spring:
   application:
@@ -17,6 +19,8 @@ spring:
     multipart:
       max-file-size: 50MB
       max-request-size: 100MB
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
 
 mybatis-plus:
   configuration:
@@ -30,7 +34,22 @@ aiart:
     secret: ${AIART_JWT_SECRET:aiart-codex-platform-default-secret-please-change}
     expiration-seconds: ${AIART_JWT_EXPIRATION_SECONDS:604800}
   storage:
+    provider: ${AIART_STORAGE_PROVIDER:local}
     upload-root: ${AIART_UPLOAD_ROOT:uploads}
+    max-asset-bytes: ${AIART_MAX_ASSET_BYTES:104857600}
+    download-expiry-seconds: ${AIART_DOWNLOAD_EXPIRY_SECONDS:300}
+    minio:
+      endpoint: ${AIART_MINIO_ENDPOINT:http://127.0.0.1:9000}
+      public-endpoint: ${AIART_MINIO_PUBLIC_ENDPOINT:http://127.0.0.1:9000}
+      access-key: ${AIART_MINIO_ACCESS_KEY:artforge}
+      secret-key: ${AIART_MINIO_SECRET_KEY:artforge-local-secret}
+      bucket: ${AIART_MINIO_BUCKET:artforge}
+  cors:
+    allowed-origins: ${AIART_CORS_ALLOWED_ORIGINS:http://127.0.0.1:5173,http://127.0.0.1:5174}
+  security:
+    login:
+      max-attempts: ${AIART_LOGIN_MAX_ATTEMPTS:5}
+      window-seconds: ${AIART_LOGIN_WINDOW_SECONDS:900}
   generation:
     sd-webui:
       base-url: ${AIART_SD_BASE_URL:http://127.0.0.1:7860}
@@ -39,3 +58,12 @@ aiart:
 logging:
   level:
     com.aiart.platform: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never

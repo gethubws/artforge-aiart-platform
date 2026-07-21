@@ -1,6 +1,7 @@
 package com.aiart.platform.service;
 
 import com.aiart.platform.dto.StylePackageDtos;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -34,6 +35,10 @@ public interface StylePackageService {
                                             StylePackageDtos.AssetSaveRequest request);
 
     StylePackageDtos.AssetView archiveAsset(Long userId, Long packageId, Long assetId);
+
+    StylePackageDtos.AssetUploadView uploadAssetFile(Long userId, Long packageId, MultipartFile file);
+
+    StylePackageDtos.AssetDownload assetDownload(Long userId, Long packageId, Long assetId);
 
     StylePackageDtos.AssetManifest manifest(Long userId, Long packageId);
 

@@ -18,6 +18,14 @@ export const getMarketStylePackages = (params = {}) => client.get('/style-packag
 export const getStylePackageDetail = (id) => client.get(`/style-packages/${id}`)
 export const getStylePackageAssets = (id, params = {}) => client.get(`/style-packages/${id}/assets`, { params })
 export const createStylePackageAsset = (id, payload) => client.post(`/style-packages/${id}/assets`, payload)
+export const uploadStylePackageAssetFile = (id, file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return client.post(`/style-packages/${id}/assets/upload`, formData)
+}
 export const updateStylePackageAsset = (id, assetId, payload) => client.put(`/style-packages/${id}/assets/${assetId}`, payload)
 export const archiveStylePackageAsset = (id, assetId) => client.post(`/style-packages/${id}/assets/${assetId}/archive`)
+export const downloadStylePackageAsset = (id, assetId) => client.get(`/style-packages/${id}/assets/${assetId}/download`, {
+  responseType: 'blob'
+})
 export const getStylePackageManifest = (id) => client.get(`/style-packages/${id}/manifest`)

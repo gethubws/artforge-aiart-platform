@@ -4,6 +4,7 @@ public enum ErrorCode {
     BAD_REQUEST(40000, "Bad request"),
     UNAUTHORIZED(40100, "Unauthorized"),
     FORBIDDEN(40300, "Forbidden"),
+    TOO_MANY_REQUESTS(42900, "Too many requests"),
     NOT_FOUND(40400, "Resource not found"),
     USER_EXISTS(40901, "Username already exists"),
     LOGIN_FAILED(40101, "Invalid username or password"),

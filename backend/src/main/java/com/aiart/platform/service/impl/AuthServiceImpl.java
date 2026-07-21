@@ -9,6 +9,7 @@ import com.aiart.platform.mapper.PointAccountMapper;
 import com.aiart.platform.mapper.UserMapper;
 import com.aiart.platform.security.JwtService;
 import com.aiart.platform.service.AuthService;
+import com.aiart.platform.service.LoginAttemptService;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,6 +26,7 @@ public class AuthServiceImpl implements AuthService {
     private final PointAccountMapper pointAccountMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final LoginAttemptService loginAttemptService;
 
     @Override
     @Transactional
@@ -73,13 +75,16 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthDtos.AuthResponse login(AuthDtos.LoginRequest request) {
+        loginAttemptService.checkAllowed(request.username());
         User user = userMapper.selectOne(Wrappers.<User>lambdaQuery().eq(User::getUsername, request.username()));
         if (user == null || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            loginAttemptService.recordFailure(request.username());
             throw new BusinessException(ErrorCode.LOGIN_FAILED);
         }
         if (!"ACTIVE".equals(user.getStatus())) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "User account is not active");
         }
+        loginAttemptService.clear(request.username());
         return issue(user);
     }
 

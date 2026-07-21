@@ -2,10 +2,18 @@ package com.aiart.platform.controller;
 
 import com.aiart.platform.common.ApiResponse;
 import com.aiart.platform.dto.StylePackageDtos;
+import com.aiart.platform.exception.BusinessException;
+import com.aiart.platform.exception.ErrorCode;
 import com.aiart.platform.security.CurrentUser;
+import com.aiart.platform.service.ResourceAssetStorageService;
 import com.aiart.platform.service.StylePackageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,7 +22,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
@@ -22,6 +33,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class StylePackageController {
     private final StylePackageService stylePackageService;
+    private final ResourceAssetStorageService resourceAssetStorageService;
     private final CurrentUser currentUser;
 
     @PostMapping
@@ -106,6 +118,39 @@ public class StylePackageController {
     public ApiResponse<StylePackageDtos.AssetView> archiveAsset(@PathVariable Long packageId,
                                                                @PathVariable Long assetId) {
         return ApiResponse.ok(stylePackageService.archiveAsset(currentUser.requireUserId(), packageId, assetId));
+    }
+
+    @PostMapping(value = "/{packageId}/assets/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<StylePackageDtos.AssetUploadView> uploadAssetFile(@PathVariable Long packageId,
+                                                                        @RequestParam("file") MultipartFile file) {
+        return ApiResponse.ok(stylePackageService.uploadAssetFile(currentUser.requireUserId(), packageId, file));
+    }
+
+    @GetMapping("/{packageId}/assets/{assetId}/download")
+    public ResponseEntity<?> downloadAsset(@PathVariable Long packageId, @PathVariable Long assetId) {
+        StylePackageDtos.AssetDownload download = stylePackageService.assetDownload(
+                currentUser.requireUserId(), packageId, assetId);
+        if (!resourceAssetStorageService.isManagedReference(download.fileUrl())) {
+            return ResponseEntity.status(302).location(externalDownloadUri(download.fileUrl())).build();
+        }
+        var content = resourceAssetStorageService.open(download.fileUrl());
+        String disposition = ContentDisposition.attachment()
+                .filename(download.filename(), StandardCharsets.UTF_8)
+                .build()
+                .toString();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition)
+                .contentType(MediaType.parseMediaType(content.contentType()))
+                .contentLength(content.contentLength())
+                .body(new InputStreamResource(content.inputStream()));
+    }
+
+    private URI externalDownloadUri(String value) {
+        URI uri = URI.create(value);
+        if (!("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "External resource downloads must use HTTP or HTTPS");
+        }
+        return uri;
     }
 
     @GetMapping("/{packageId}/manifest")

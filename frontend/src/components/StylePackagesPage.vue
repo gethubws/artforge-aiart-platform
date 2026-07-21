@@ -431,7 +431,7 @@
             <p>{{ activeAsset.negativePromptText }}</p>
           </section>
           <div class="detail-actions">
-            <el-button v-if="activeAsset.downloadable && activeAsset.fileUrl" type="primary" @click="openAssetFile(activeAsset)">打开原始资源</el-button>
+            <el-button v-if="activeAsset.downloadable && activeAsset.fileUrl" type="primary" @click="downloadAssetFile(activeAsset)">下载原始资源</el-button>
             <el-button v-if="activePack?.editable" @click="openAssetEditor(activeAsset)">创建新修订</el-button>
             <el-button v-if="activePack?.editable" type="danger" plain @click="archiveAsset(activeAsset)">归档资源</el-button>
           </div>
@@ -459,8 +459,19 @@
           <el-form-item label="预览图地址" class="resource-form-wide">
             <el-input v-model="assetForm.previewImageUrl" placeholder="/images/style-packs/example/tree.png" />
           </el-form-item>
-          <el-form-item label="原始文件地址" class="resource-form-wide">
-            <el-input v-model="assetForm.fileUrl" placeholder="购买或拥有权限后才会返回这个地址" />
+          <el-form-item label="原始资源文件" class="resource-form-wide">
+            <div class="resource-upload-row">
+              <el-input v-model="assetForm.fileUrl" placeholder="上传文件，或填写已有资源地址" />
+              <el-upload
+                :show-file-list="false"
+                :http-request="handleAssetFileUpload"
+                :disabled="assetUploading"
+                accept=".png,.jpg,.jpeg,.webp,.gif,.zip,.json,.txt"
+              >
+                <el-button :icon="Upload" :loading="assetUploading">上传文件</el-button>
+              </el-upload>
+            </div>
+            <span class="resource-upload-hint">文件会进入私有存储，只有资源包拥有者、协作者和已兑换用户可以下载。</span>
           </el-form-item>
           <el-form-item label="宽度">
             <el-input-number v-model="assetForm.width" :min="1" controls-position="right" />
@@ -473,6 +484,10 @@
               <el-option label="PNG" value="PNG" />
               <el-option label="WebP" value="WEBP" />
               <el-option label="JPG" value="JPG" />
+              <el-option label="GIF" value="GIF" />
+              <el-option label="ZIP" value="ZIP" />
+              <el-option label="JSON" value="JSON" />
+              <el-option label="TXT" value="TXT" />
             </el-select>
           </el-form-item>
           <el-form-item label="背景模式">
@@ -875,16 +890,18 @@
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
-import { Bell, Collection, Refresh, Search, Star } from '@element-plus/icons-vue'
+import { Bell, Collection, Refresh, Search, Star, Upload } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import BilingualTagLabel from './BilingualTagLabel.vue'
 import { useDisplayDensity } from '../composables/useDisplayDensity'
 import {
   archiveStylePackageAsset,
   createStylePackageAsset,
+  downloadStylePackageAsset,
   getStylePackageAssets,
   getStylePackageDetail,
   getStylePackageManifest,
+  uploadStylePackageAssetFile,
   updateStylePackageAsset
 } from '../api/stylePackages'
 
@@ -961,6 +978,7 @@ const selectedAssetCategory = ref('')
 const activeAsset = ref(null)
 const assetDetailVisible = ref(false)
 const assetEditorVisible = ref(false)
+const assetUploading = ref(false)
 const assetSaving = ref(false)
 const manifestVisible = ref(false)
 const manifestLoading = ref(false)
@@ -1297,6 +1315,25 @@ const saveAsset = async () => {
   }
 }
 
+const handleAssetFileUpload = async ({ file }) => {
+  if (!activePack.value?.id) {
+    ElMessage.warning('请先选择需要维护的资源包')
+    return
+  }
+  assetUploading.value = true
+  try {
+    const uploaded = await uploadStylePackageAssetFile(activePack.value.id, file)
+    assetForm.fileUrl = uploaded.fileUrl
+    const extension = uploaded.originalFilename?.split('.').pop()?.toUpperCase()
+    if (extension) assetForm.fileFormat = extension === 'JPEG' ? 'JPG' : extension
+    ElMessage.success('原始资源已上传到私有存储')
+  } catch (error) {
+    ElMessage.error(error?.message || '资源文件上传失败')
+  } finally {
+    assetUploading.value = false
+  }
+}
+
 const archiveAsset = async (asset) => {
   try {
     await ElMessageBox.confirm(`归档资源“${asset.name}”？历史版本仍会保留这个修订。`, '归档资源', { type: 'warning' })
@@ -1325,8 +1362,22 @@ const openManifest = async (pack) => {
   }
 }
 
-const openAssetFile = (asset) => {
-  if (asset?.fileUrl) window.open(asset.fileUrl, '_blank', 'noopener')
+const downloadAssetFile = async (asset) => {
+  if (!activePack.value?.id || !asset?.id) return
+  try {
+    const blob = await downloadStylePackageAsset(activePack.value.id, asset.id)
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    const extension = (asset.fileFormat || 'bin').toLowerCase()
+    link.href = url
+    link.download = `${asset.name || 'resource'}.${extension}`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  } catch (error) {
+    ElMessage.error(error?.message || '资源下载失败')
+  }
 }
 
 const openCreateDialog = () => {
@@ -1721,6 +1772,21 @@ watch(
   grid-column: 1 / -1;
 }
 
+.resource-upload-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  width: 100%;
+}
+
+.resource-upload-hint {
+  display: block;
+  margin-top: 6px;
+  color: #7b8b84;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
 .manifest-layout {
   min-height: 240px;
 }
@@ -1814,6 +1880,15 @@ watch(
 
   .resource-form-wide {
     grid-column: auto;
+  }
+
+  .resource-upload-row {
+    grid-template-columns: 1fr;
+  }
+
+  .resource-upload-row .el-upload,
+  .resource-upload-row .el-button {
+    width: 100%;
   }
 
   .manifest-summary,

@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.5.0] - 2026-07-21
+
+### Added
+
+- Docker Compose deployment for MySQL, Redis, MinIO, backend and Nginx frontend.
+- Local and MinIO object-storage providers with stable public file URLs.
+- Private style-resource uploads, authenticated downloads and expiring MinIO download URLs.
+- Backend health checks, production profile and restricted CORS configuration.
+- Failed-login rate limiting backed by Redis.
+- GitHub Actions checks for backend tests, frontend builds and Compose validation.
+- Administrator operation logs with filtering in the management console.
+- Automated coverage for storage, upload signatures, login limiting, JWT account status and resource download authorization.
+
+### Changed
+
+- Route-level frontend code splitting and vendor chunk separation.
+- Generated images and tag previews now use the object-storage abstraction.
+- Authenticated private downloads are streamed through the backend for consistent local and MinIO behavior.
+
+### Security
+
+- Image and ZIP uploads now validate file signatures in addition to MIME types and extensions.
+- Suspended users cannot establish an authenticated request context from an existing JWT.
+
 本项目从 `v1.0.0` 起按语义化版本记录稳定节点。
 
 ## [1.4.1] - 2026-07-21

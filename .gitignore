@@ -12,6 +12,7 @@ frontend/public/images/style-packs/*/sheet-*.png
 .env
 .env.*
 !.env.example
+!.env.docker.example
 *.local
 
 # Runtime logs

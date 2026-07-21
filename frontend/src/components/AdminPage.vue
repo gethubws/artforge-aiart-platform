@@ -66,6 +66,16 @@
           @review="$emit('review-content-audit', $event)"
         />
 
+        <AdminOperationsPanel
+          v-else-if="activeSection === 'operations'"
+          :operation-page="adminOperationPage"
+          :query="adminOperationQuery"
+          :loading="adminOperationLoading"
+          :format-date="formatDate"
+          @search="$emit('search-admin-operations')"
+          @page-change="$emit('change-admin-operation-page', $event)"
+        />
+
         <AdminTagsPanel
           v-else-if="activeSection === 'tags'"
           :tag-admin-loading="tagAdminLoading"
@@ -109,9 +119,10 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { CollectionTag, DataAnalysis, Grid, Refresh, Stamp, User } from '@element-plus/icons-vue'
+import { CollectionTag, DataAnalysis, Document, Grid, Refresh, Stamp, User } from '@element-plus/icons-vue'
 import AdminAuditPanel from './admin/AdminAuditPanel.vue'
 import AdminContentPanel from './admin/AdminContentPanel.vue'
+import AdminOperationsPanel from './admin/AdminOperationsPanel.vue'
 import AdminOverviewPanel from './admin/AdminOverviewPanel.vue'
 import AdminTagsPanel from './admin/AdminTagsPanel.vue'
 import AdminUsersPanel from './admin/AdminUsersPanel.vue'
@@ -126,6 +137,9 @@ const props = defineProps({
   adminUserLoading: { type: Boolean, default: false },
   adminUserPage: { type: Object, default: () => ({ items: [], page: 1, size: 20, total: 0, pages: 0 }) },
   adminUserQuery: { type: Object, required: true },
+  adminOperationLoading: { type: Boolean, default: false },
+  adminOperationPage: { type: Object, default: () => ({ items: [], page: 1, size: 20, total: 0, pages: 0 }) },
+  adminOperationQuery: { type: Object, required: true },
   categoryForm: { type: Object, required: true },
   tagForm: { type: Object, required: true },
   adminTagTree: { type: Array, default: () => [] },
@@ -145,7 +159,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits([
-  'refresh', 'load-admin-users', 'search-admin-users', 'change-admin-user-page', 'save-admin-user', 'navigate-platform',
+  'refresh', 'load-admin-users', 'search-admin-users', 'change-admin-user-page', 'save-admin-user',
+  'load-admin-operations', 'search-admin-operations', 'change-admin-operation-page', 'navigate-platform',
   'save-tag-category', 'reset-tag-form', 'save-tag-item', 'edit-tag-item', 'disable-tag-item', 'open-tag-gallery',
   'close-tag-gallery', 'reset-preview-form', 'edit-tag-preview', 'save-tag-preview', 'set-tag-preview-cover',
   'delete-tag-preview', 'move-tag-preview', 'review-content-audit'
@@ -156,6 +171,7 @@ const sections = computed(() => [
   { key: 'overview', label: '总览', icon: DataAnalysis },
   { key: 'users', label: '用户管理', icon: User },
   { key: 'audit', label: '内容审核', icon: Stamp, badge: props.pendingAudits.length || 0 },
+  { key: 'operations', label: '操作日志', icon: Document },
   { key: 'tags', label: '标签图库', icon: CollectionTag },
   { key: 'content', label: '平台内容', icon: Grid }
 ])
@@ -163,5 +179,6 @@ const sections = computed(() => [
 function selectSection(section) {
   activeSection.value = section
   if (section === 'users') emit('load-admin-users')
+  if (section === 'operations') emit('load-admin-operations')
 }
 </script>

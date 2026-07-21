@@ -6,16 +6,16 @@
   >
     <header class="page-hero hub-hero">
       <div class="hero-copy">
-        <p class="eyebrow">Style Collection</p>
-        <h1>{{ isMarketView ? '风格市场' : '我的风格包' }}</h1>
+        <p class="eyebrow">Style Asset Marketplace</p>
+        <h1>{{ isMarketView ? '风格资源市场' : '我的风格资源包' }}</h1>
         <p class="page-subtitle">{{ summaryText }}</p>
       </div>
       <div class="hero-actions">
         <el-button plain @click="$emit('go-related', isMarketView ? 'my-styles' : 'style-market')">
-          {{ isMarketView ? '进入我的风格包' : '返回风格市场' }}
+          {{ isMarketView ? '进入我的资源包' : '返回资源市场' }}
         </el-button>
         <el-button :icon="Refresh" :loading="styleLoading" @click="$emit('refresh', currentQuery())">刷新</el-button>
-        <el-button v-if="!isMarketView" type="primary" @click="openCreateDialog">新建风格包</el-button>
+        <el-button v-if="!isMarketView" type="primary" @click="openCreateDialog">新建资源包</el-button>
       </div>
     </header>
 
@@ -24,7 +24,7 @@
         <el-input
           v-model="keyword"
           :prefix-icon="Search"
-          placeholder="搜索名称、简介、风格说明或标签"
+          placeholder="搜索资源包、资源类型、风格说明或标签"
           clearable
           class="market-search-input"
         />
@@ -38,7 +38,7 @@
         </el-select>
         <el-select v-model="sortMode" placeholder="排序" class="toolbar-select">
           <el-option label="最近更新" value="latest" />
-          <el-option label="收录作品最多" value="artworks" />
+          <el-option label="资源数量最多" value="resources" />
           <el-option label="评分最高" value="rating" />
           <el-option label="协作者最多" value="collaborators" />
           <el-option label="价格最高" value="price" />
@@ -47,7 +47,7 @@
 
       <div class="hub-summary-row market-summary-row">
         <div>
-          <h2>{{ isMarketView ? '浏览风格成果集合' : '管理你的风格资产' }}</h2>
+          <h2>{{ isMarketView ? '发现可直接用于创作的统一风格资源' : '管理可持续迭代的风格资产库' }}</h2>
           <p>{{ isMarketView ? marketSummary : workspaceSummary }}</p>
         </div>
         <div class="market-summary-tools">
@@ -101,9 +101,8 @@
         </div>
 
         <div class="style-pack-preview-caption">
-          <span>{{ artworkCount(pack) }} 张已收录作品</span>
-          <span v-if="previewImages(pack).length > 1">共 {{ previewImages(pack).length }} 张预览</span>
-          <span v-else>等待更多共创作品</span>
+          <span>{{ resourceCount(pack) }} 项可用资源</span>
+          <span>{{ categoryCount(pack) }} 个资源类目</span>
         </div>
 
         <div class="style-pack-card-body">
@@ -132,15 +131,15 @@
       </article>
 
       <div v-if="!visiblePacks.length" class="detail-empty-state hub-empty-state">
-        <strong>{{ isMarketView ? '没有匹配的风格包' : '你还没有创建风格包' }}</strong>
-        <span>试试调整搜索与标签筛选，后续继续扩展分类与市场规则也会更自然。</span>
+        <strong>{{ isMarketView ? '没有匹配的风格资源包' : '你还没有创建风格资源包' }}</strong>
+        <span>调整搜索与标签筛选，或创建第一个可交付的统一风格资源集合。</span>
       </div>
     </section>
 
     <section class="soft-panel pager-panel">
       <div class="pager-copy">
-        <strong>{{ isMarketView ? '风格市场分页' : '我的风格包分页' }}</strong>
-        <span>共 {{ Number(queryState.total || 0) }} 个风格包，当前第 {{ currentPage }} 页。</span>
+        <strong>{{ isMarketView ? '资源市场分页' : '我的资源包分页' }}</strong>
+        <span>共 {{ Number(queryState.total || 0) }} 个资源包，当前第 {{ currentPage }} 页。</span>
       </div>
       <div class="pager-actions">
         <el-pagination
@@ -158,7 +157,7 @@
       v-model="packDrawerVisible"
       size="min(1040px, 96vw)"
       class="hub-drawer"
-      :title="activePack ? activePack.name : '风格包详情'"
+      :title="activePack ? activePack.name : '风格资源包详情'"
       destroy-on-close
     >
       <template v-if="activePack">
@@ -170,6 +169,7 @@
                 <h2>{{ activePack.name }}</h2>
               </div>
               <div class="drawer-top-badges">
+                <span class="task-tier-chip">{{ activePack.commercialUse ? '支持商用' : '仅限非商用' }}</span>
                 <span class="status-badge" :class="statusBadgeClass(activePack.status)">
                   {{ statusText(activePack.status) }}
                 </span>
@@ -233,6 +233,11 @@
                   <p>{{ activePack.negativePromptGuide }}</p>
                 </section>
 
+                <section class="drawer-copy-block license-summary-block">
+                  <h3>资源授权</h3>
+                  <p>{{ activePack.licenseSummary || '购买后可在项目中使用包内资源，不得单独转售或重新分发原始文件。' }}</p>
+                </section>
+
                 <section v-if="activePack.collaborators?.length" class="drawer-copy-block">
                   <h3>协作者</h3>
                   <div class="style-collaborator-list">
@@ -253,20 +258,83 @@
                   <el-button @click="$emit('toggle-subscription-target', { type: 'STYLE_PACKAGE', target: activePack })">
                     {{ props.isSubscribedTarget?.('STYLE_PACKAGE', activePack) ? '取消订阅' : '订阅动态' }}
                   </el-button>
-                  <el-button v-if="isMarketView" type="primary" @click="openSubmissionDialog(activePack)">投稿作品</el-button>
-                  <el-button v-if="isMarketView" @click="openReviewDialog(activePack)">我要评价</el-button>
-                  <el-button v-if="isMarketView" @click="$emit('exchange-pack', activePack)">兑换风格包</el-button>
+                  <el-button v-if="activePack.accessible" type="primary" @click="openManifest(activePack)">查看资源清单</el-button>
+                  <el-button v-else-if="isMarketView" type="primary" @click="$emit('exchange-pack', activePack)">兑换资源包</el-button>
+                  <el-button v-if="isMarketView" @click="openSubmissionDialog(activePack)">投稿效果作品</el-button>
+                  <el-button v-if="isMarketView" @click="openReviewDialog(activePack)">评价资源包</el-button>
 
                   <template v-if="!isMarketView">
-                    <el-button @click="openEditDialog(activePack)">编辑风格包</el-button>
-                    <el-button v-if="activePack.status !== 'PUBLISHED'" type="primary" @click="$emit('publish-pack', activePack)">
+                    <el-button v-if="activePack.owner" @click="openEditDialog(activePack)">编辑资源包</el-button>
+                    <el-button v-if="activePack.owner && activePack.status !== 'PUBLISHED'" type="primary" @click="$emit('publish-pack', activePack)">
                       发布
                     </el-button>
-                    <el-button v-else @click="$emit('archive-pack', activePack)">归档</el-button>
-                    <el-button @click="openOwnerOps(activePack)">投稿审核</el-button>
+                    <el-button v-else-if="activePack.owner" @click="$emit('archive-pack', activePack)">归档</el-button>
+                    <el-button v-if="activePack.owner" @click="openOwnerOps(activePack)">投稿审核</el-button>
                   </template>
                 </div>
               </div>
+            </div>
+          </section>
+
+          <section class="soft-panel embedded-panel resource-catalog-panel" v-loading="assetsLoading">
+            <div class="section-title-row lower resource-section-heading">
+              <div>
+                <p class="eyebrow">Deliverable Assets</p>
+                <h2>包内资源目录</h2>
+                <span>{{ packAssets.length }} 项资源，按场景分类浏览。效果作品与可下载资源在这里严格分开。</span>
+              </div>
+              <div class="detail-actions">
+                <el-button v-if="activePack.editable" type="primary" @click="openAssetEditor()">添加资源</el-button>
+                <el-button @click="loadPackResources(activePack)">刷新目录</el-button>
+              </div>
+            </div>
+
+            <div class="resource-category-tabs">
+              <button
+                type="button"
+                :class="{ active: selectedAssetCategory === '' }"
+                @click="selectedAssetCategory = ''"
+              >
+                全部 <span>{{ packAssets.length }}</span>
+              </button>
+              <button
+                v-for="category in resourceCategories"
+                :key="category.key"
+                type="button"
+                :class="{ active: selectedAssetCategory === category.key }"
+                @click="selectedAssetCategory = category.key"
+              >
+                {{ resourceCategoryLabel(category.key) }} <span>{{ category.count }}</span>
+              </button>
+            </div>
+
+            <div v-if="filteredPackAssets.length" class="resource-asset-grid">
+              <article
+                v-for="asset in filteredPackAssets"
+                :key="asset.id"
+                class="resource-asset-card"
+                @click="openAssetDetail(asset)"
+              >
+                <div class="resource-asset-image">
+                  <img :src="asset.thumbnailUrl || asset.previewImageUrl" :alt="asset.name" />
+                  <span>{{ resourceCategoryLabel(asset.categoryKey) }}</span>
+                </div>
+                <div class="resource-asset-copy">
+                  <div>
+                    <strong>{{ asset.name }}</strong>
+                    <span>修订 v{{ asset.revisionNumber }}</span>
+                  </div>
+                  <p>{{ asset.description || '统一风格资源，可在详情中查看尺寸、格式与生成信息。' }}</p>
+                  <div class="resource-asset-meta">
+                    <span>{{ asset.width && asset.height ? `${asset.width} × ${asset.height}` : '尺寸待补充' }}</span>
+                    <span>{{ asset.fileFormat || 'PNG' }}</span>
+                    <span>{{ asset.downloadable ? '已解锁' : '预览' }}</span>
+                  </div>
+                </div>
+              </article>
+            </div>
+            <div v-else class="quiet-empty resource-empty-state">
+              {{ selectedAssetCategory ? '这个分类还没有资源。' : '这个资源包尚未添加可交付资源。' }}
             </div>
           </section>
 
@@ -278,11 +346,16 @@
             <div class="submission-list compact-submission-list">
               <article v-for="version in stylePackageVersions" :key="version.id" class="submission-row">
                 <div>
-                  <strong>{{ version.versionName || `版本 #${version.id}` }}</strong>
+                  <strong>版本 v{{ version.versionNumber || version.id }}</strong>
                   <span>{{ formatDate(version.createdAt) }}</span>
                   <p class="submission-note-copy">
                     {{ version.styleStatement || version.description || '这个版本主要用于保留风格包快照。' }}
                   </p>
+                  <div class="resource-version-stats">
+                    <span>{{ version.resourceCount || 0 }} 项资源</span>
+                    <span>{{ version.categoryCount || 0 }} 个类目</span>
+                    <span>{{ version.changeNote || '版本快照' }}</span>
+                  </div>
                 </div>
               </article>
               <div v-if="!stylePackageVersions.length" class="quiet-empty compact-empty">还没有版本记录。</div>
@@ -309,7 +382,7 @@
 
           <section class="soft-panel embedded-panel">
             <div class="section-title-row lower">
-              <h2>收录作品</h2>
+              <h2>效果展示与共创作品</h2>
             </div>
             <div v-if="activePack.artworks?.length" class="style-artwork-grid">
               <article v-for="artwork in activePack.artworks" :key="artwork.id" class="style-artwork-card">
@@ -317,11 +390,152 @@
                 <strong>{{ artwork.title }}</strong>
               </article>
             </div>
-            <div v-else class="quiet-empty compact-empty">这个风格包还没有收录作品。</div>
+            <div v-else class="quiet-empty compact-empty">这个资源包还没有效果展示作品。</div>
           </section>
         </div>
       </template>
     </el-drawer>
+
+    <el-dialog v-model="assetDetailVisible" width="min(920px, 96vw)" destroy-on-close>
+      <template #header>
+        <div>
+          <p class="eyebrow">Resource Detail</p>
+          <h2>{{ activeAsset?.name || '资源详情' }}</h2>
+        </div>
+      </template>
+      <div v-if="activeAsset" class="resource-detail-layout">
+        <div class="resource-detail-preview">
+          <img :src="activeAsset.previewImageUrl" :alt="activeAsset.name" />
+        </div>
+        <div class="resource-detail-info">
+          <div class="resource-detail-badges">
+            <el-tag effect="plain">{{ resourceCategoryLabel(activeAsset.categoryKey) }}</el-tag>
+            <el-tag type="info" effect="plain">v{{ activeAsset.revisionNumber }}</el-tag>
+            <el-tag :type="activeAsset.downloadable ? 'success' : 'warning'" effect="plain">
+              {{ activeAsset.downloadable ? '已解锁完整资源' : '仅公开预览' }}
+            </el-tag>
+          </div>
+          <p>{{ activeAsset.description || '暂无资源说明。' }}</p>
+          <dl class="resource-spec-list">
+            <div><dt>尺寸</dt><dd>{{ activeAsset.width && activeAsset.height ? `${activeAsset.width} × ${activeAsset.height}` : '未记录' }}</dd></div>
+            <div><dt>格式</dt><dd>{{ activeAsset.fileFormat || 'PNG' }}</dd></div>
+            <div><dt>背景</dt><dd>{{ backgroundModeLabel(activeAsset.backgroundMode) }}</dd></div>
+            <div><dt>贡献者</dt><dd>#{{ activeAsset.contributorId }}</dd></div>
+          </dl>
+          <section v-if="activeAsset.promptText" class="drawer-copy-block">
+            <h3>生成提示词</h3>
+            <p>{{ activeAsset.promptText }}</p>
+          </section>
+          <section v-if="activeAsset.negativePromptText" class="drawer-copy-block">
+            <h3>反向提示词</h3>
+            <p>{{ activeAsset.negativePromptText }}</p>
+          </section>
+          <div class="detail-actions">
+            <el-button v-if="activeAsset.downloadable && activeAsset.fileUrl" type="primary" @click="openAssetFile(activeAsset)">打开原始资源</el-button>
+            <el-button v-if="activePack?.editable" @click="openAssetEditor(activeAsset)">创建新修订</el-button>
+            <el-button v-if="activePack?.editable" type="danger" plain @click="archiveAsset(activeAsset)">归档资源</el-button>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+
+    <el-dialog v-model="assetEditorVisible" width="min(860px, 96vw)" destroy-on-close>
+      <template #header>
+        <div>
+          <p class="eyebrow">Resource Editor</p>
+          <h2>{{ assetForm.id ? '创建资源新修订' : '添加包内资源' }}</h2>
+        </div>
+      </template>
+      <el-form label-position="top" class="resource-editor-form">
+        <div class="resource-form-grid">
+          <el-form-item label="资源名称">
+            <el-input v-model="assetForm.name" placeholder="例如：萤光橡树 A" />
+          </el-form-item>
+          <el-form-item label="资源类目">
+            <el-select v-model="assetForm.categoryKey" filterable allow-create default-first-option>
+              <el-option v-for="item in resourceCategoryOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="预览图地址" class="resource-form-wide">
+            <el-input v-model="assetForm.previewImageUrl" placeholder="/images/style-packs/example/tree.png" />
+          </el-form-item>
+          <el-form-item label="原始文件地址" class="resource-form-wide">
+            <el-input v-model="assetForm.fileUrl" placeholder="购买或拥有权限后才会返回这个地址" />
+          </el-form-item>
+          <el-form-item label="宽度">
+            <el-input-number v-model="assetForm.width" :min="1" controls-position="right" />
+          </el-form-item>
+          <el-form-item label="高度">
+            <el-input-number v-model="assetForm.height" :min="1" controls-position="right" />
+          </el-form-item>
+          <el-form-item label="文件格式">
+            <el-select v-model="assetForm.fileFormat">
+              <el-option label="PNG" value="PNG" />
+              <el-option label="WebP" value="WEBP" />
+              <el-option label="JPG" value="JPG" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="背景模式">
+            <el-select v-model="assetForm.backgroundMode">
+              <el-option label="透明背景" value="TRANSPARENT" />
+              <el-option label="纯色背景" value="SOLID" />
+              <el-option label="完整场景" value="SCENE" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="排序">
+            <el-input-number v-model="assetForm.sortOrder" :min="0" controls-position="right" />
+          </el-form-item>
+          <el-form-item label="授权继承">
+            <el-select v-model="assetForm.licenseScope">
+              <el-option label="继承资源包授权" value="PACKAGE" />
+              <el-option label="仅限个人项目" value="PERSONAL" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="资源说明" class="resource-form-wide">
+            <el-input v-model="assetForm.description" type="textarea" :rows="3" resize="none" />
+          </el-form-item>
+          <el-form-item label="生成提示词" class="resource-form-wide">
+            <el-input v-model="assetForm.promptText" type="textarea" :rows="3" resize="none" />
+          </el-form-item>
+          <el-form-item label="反向提示词" class="resource-form-wide">
+            <el-input v-model="assetForm.negativePromptText" type="textarea" :rows="2" resize="none" />
+          </el-form-item>
+          <el-form-item label="生成参数 JSON" class="resource-form-wide">
+            <el-input v-model="assetForm.generationParamsJson" type="textarea" :rows="3" resize="none" placeholder='{"model":"...","seed":1234}' />
+          </el-form-item>
+        </div>
+      </el-form>
+      <template #footer>
+        <div class="detail-actions">
+          <el-button @click="assetEditorVisible = false">取消</el-button>
+          <el-button type="primary" :loading="assetSaving" @click="saveAsset">保存资源</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="manifestVisible" width="min(900px, 96vw)" destroy-on-close>
+      <template #header>
+        <div>
+          <p class="eyebrow">Version Manifest</p>
+          <h2>{{ manifestData?.packageName || '资源清单' }}</h2>
+        </div>
+      </template>
+      <div v-loading="manifestLoading" class="manifest-layout">
+        <div class="manifest-summary">
+          <div><strong>v{{ manifestData?.versionNumber || '-' }}</strong><span>当前交付版本</span></div>
+          <div><strong>{{ manifestData?.resourceCount || 0 }}</strong><span>项资源</span></div>
+          <div><strong>{{ manifestData?.categoryCount || 0 }}</strong><span>个类目</span></div>
+          <div><strong>{{ manifestData?.commercialUse ? '允许' : '不允许' }}</strong><span>商业使用</span></div>
+        </div>
+        <p class="manifest-license">{{ manifestData?.licenseSummary || '请遵循资源包授权说明。' }}</p>
+        <div class="manifest-resource-list">
+          <button v-for="asset in manifestData?.assets || []" :key="asset.id" type="button" @click="openAssetDetail(asset)">
+            <img :src="asset.thumbnailUrl || asset.previewImageUrl" :alt="asset.name" />
+            <span><strong>{{ asset.name }}</strong><small>{{ resourceCategoryLabel(asset.categoryKey) }} · v{{ asset.revisionNumber }}</small></span>
+          </button>
+        </div>
+      </div>
+    </el-dialog>
 
     <el-dialog v-model="packEditorVisible" width="min(960px, 96vw)" destroy-on-close>
       <template #header>
@@ -426,6 +640,35 @@
             <div class="detail-actions">
               <el-button v-if="featuredArtwork?.imageUrl" @click="syncFeaturedToCover">同步特色作品信息</el-button>
             </div>
+
+            <div class="detail-tab-grid">
+              <el-form-item label="授权类型">
+                <el-select
+                  :model-value="styleForm.licenseType"
+                  @update:model-value="$emit('patch-style-form', { licenseType: $event })"
+                >
+                  <el-option label="标准资源包授权" value="STANDARD" />
+                  <el-option label="仅限个人使用" value="PERSONAL" />
+                  <el-option label="CC0 公共领域" value="CC0" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="允许商业使用">
+                <el-switch
+                  :model-value="styleForm.commercialUse"
+                  @update:model-value="$emit('patch-style-form', { commercialUse: $event })"
+                />
+              </el-form-item>
+            </div>
+
+            <el-form-item label="授权摘要">
+              <el-input
+                :model-value="styleForm.licenseSummary"
+                type="textarea"
+                :autosize="{ minRows: 2, maxRows: 4 }"
+                resize="none"
+                @update:model-value="$emit('patch-style-form', { licenseSummary: $event })"
+              />
+            </el-form-item>
 
             <el-form-item label="风格标签">
               <el-select
@@ -633,8 +876,17 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { Bell, Collection, Refresh, Search, Star } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import BilingualTagLabel from './BilingualTagLabel.vue'
 import { useDisplayDensity } from '../composables/useDisplayDensity'
+import {
+  archiveStylePackageAsset,
+  createStylePackageAsset,
+  getStylePackageAssets,
+  getStylePackageDetail,
+  getStylePackageManifest,
+  updateStylePackageAsset
+} from '../api/stylePackages'
 
 const props = defineProps({
   styleForm: { type: Object, required: true },
@@ -702,13 +954,53 @@ const packEditorVisible = ref(false)
 const packSubmissionVisible = ref(false)
 const packReviewVisible = ref(false)
 const ownerOpsVisible = ref(false)
+const activePackDetail = ref(null)
+const packAssets = ref([])
+const assetsLoading = ref(false)
+const selectedAssetCategory = ref('')
+const activeAsset = ref(null)
+const assetDetailVisible = ref(false)
+const assetEditorVisible = ref(false)
+const assetSaving = ref(false)
+const manifestVisible = ref(false)
+const manifestLoading = ref(false)
+const manifestData = ref(null)
 const collaboratorInput = ref('')
 const reviewDrafts = reactive({})
+const assetForm = reactive({
+  id: null,
+  logicalKey: '',
+  name: '',
+  categoryKey: 'VEGETATION',
+  description: '',
+  previewImageUrl: '',
+  fileUrl: '',
+  thumbnailUrl: '',
+  promptText: '',
+  negativePromptText: '',
+  generationParamsJson: '',
+  width: 1024,
+  height: 1024,
+  fileFormat: 'PNG',
+  backgroundMode: 'TRANSPARENT',
+  licenseScope: 'PACKAGE',
+  sortOrder: 0
+})
 let queryTimer = null
 let lastEmittedQueryKey = ''
 
-const marketSummary = '先看内容预览，再点开详情、投稿、评价或兑换。'
-const workspaceSummary = '主页面聚焦预览与筛选，编辑、发布、归档和投稿审核都收进弹层里处理。'
+const resourceCategoryOptions = [
+  { value: 'VEGETATION', label: '植被' },
+  { value: 'ARCHITECTURE', label: '建筑' },
+  { value: 'PROPS', label: '道具' },
+  { value: 'CHARACTERS', label: '角色' },
+  { value: 'CREATURES', label: '生物' },
+  { value: 'TERRAIN', label: '地形与材质' },
+  { value: 'UI', label: '界面与图标' },
+  { value: 'BACKGROUNDS', label: '背景与特效' }
+]
+const marketSummary = '像挑选游戏资源包一样浏览统一风格的植被、角色、建筑、道具与界面素材。'
+const workspaceSummary = '维护资源目录、版本快照、授权范围和协作成员，形成真正可交付的风格资产。'
 
 const isMarketView = computed(() => currentView.value === 'market')
 const sourcePacks = computed(() => (isMarketView.value ? props.marketStylePackages : props.myStylePackages))
@@ -734,9 +1026,21 @@ const editorPackageArtworks = computed(() => {
 })
 
 const activePack = computed(() => {
+  if (activePackDetail.value?.id === activePackId.value) return activePackDetail.value
   return visiblePacks.value.find((pack) => pack.id === activePackId.value)
     || sourcePacks.value.find((pack) => pack.id === activePackId.value)
     || null
+})
+
+const resourceCategories = computed(() => {
+  const counts = new Map()
+  packAssets.value.forEach((asset) => counts.set(asset.categoryKey, (counts.get(asset.categoryKey) || 0) + 1))
+  return [...counts.entries()].map(([key, count]) => ({ key, count }))
+})
+
+const filteredPackAssets = computed(() => {
+  if (!selectedAssetCategory.value) return packAssets.value
+  return packAssets.value.filter((asset) => asset.categoryKey === selectedAssetCategory.value)
 })
 
 const activePreviewUrl = computed(() => {
@@ -762,8 +1066,8 @@ const submissionEligibleArtworks = computed(() => {
 
 const summaryText = computed(() => {
   return isMarketView.value
-    ? '把风格包当成可浏览、可协作、可交易的风格作品集合，而不是单纯的提示词模板。'
-    : '在这里维护你的风格资产：封面、标签、风格说明、协作者，以及被收录的作品成果。'
+    ? '每个资源包都包含一组可复用、可版本化、视觉一致的创作素材，不再只是提示词模板。'
+    : '在这里维护封面、标签、授权、协作者和包内资源修订，并用作品展示最终使用效果。'
 })
 
 const currentQuery = () => ({
@@ -836,6 +1140,9 @@ const previewImages = (pack) => {
     previews.push({ url, key, title })
   }
   add(pack.coverImageUrl, `cover-${pack.id}`, pack.name)
+  for (const asset of pack.assetPreviews || []) {
+    add(asset.thumbnailUrl || asset.previewImageUrl, `asset-${asset.id}`, asset.name)
+  }
   for (const artwork of pack.artworks || []) {
     add(artwork.imageUrl, `artwork-${artwork.id}`, artwork.title)
   }
@@ -844,26 +1151,182 @@ const previewImages = (pack) => {
 
 const primaryImage = (pack) => previewImages(pack)[0]?.url || ''
 const artworkCount = (pack) => Number(pack?.stats?.approvedArtworkCount || pack?.artworks?.length || 0)
+const resourceCount = (pack) => Number(pack?.stats?.resourceCount || pack?.assetPreviews?.length || 0)
+const categoryCount = (pack) => Number(pack?.stats?.categoryCount || new Set((pack?.assetPreviews || []).map((item) => item.categoryKey)).size || 0)
 const ownerText = (pack) => {
   if (pack?.owner) return '由你维护'
+  if (pack?.editable) return '你参与协作'
   const count = Number(pack?.stats?.collaboratorCount || 0)
   return count > 0 ? `${count} 位协作者参与` : '公开风格包'
 }
 const tagLabel = (tag) => (tag?.displayNameZh ? `${tag.displayNameZh} / ${tag.name}` : tag?.name || '')
 const featuredArtworkLabel = (artwork) => `${artwork.title || '作品'} #${artwork.id}`
+const resourceCategoryLabel = (key) => resourceCategoryOptions.find((item) => item.value === key)?.label || key || '未分类'
+const backgroundModeLabel = (mode) => ({ TRANSPARENT: '透明背景', SOLID: '纯色背景', SCENE: '完整场景' }[mode] || mode || '未记录')
 
 const reloadPackDetail = (pack) => {
   emit('load-versions', pack)
   emit('load-reviews', pack)
   emit('load-artworks', pack)
+  loadPackResources(pack)
+}
+
+const loadPackResources = async (pack) => {
+  if (!pack?.id) return
+  const requestId = pack.id
+  assetsLoading.value = true
+  try {
+    const [detail, assets] = await Promise.all([
+      getStylePackageDetail(pack.id),
+      getStylePackageAssets(pack.id)
+    ])
+    if (activePackId.value !== requestId) return
+    activePackDetail.value = detail
+    packAssets.value = assets || []
+    if (selectedAssetCategory.value && !packAssets.value.some((asset) => asset.categoryKey === selectedAssetCategory.value)) {
+      selectedAssetCategory.value = ''
+    }
+  } catch (error) {
+    ElMessage.error(error?.message || '资源目录加载失败')
+  } finally {
+    if (activePackId.value === requestId) assetsLoading.value = false
+  }
 }
 
 const openPackDrawer = (pack) => {
   activePackId.value = pack.id
+  activePackDetail.value = null
+  packAssets.value = []
+  selectedAssetCategory.value = ''
   activePreviewId.value = previewImages(pack)[0]?.key || ''
   packDrawerVisible.value = true
   reloadPackDetail(pack)
   if (!isMarketView.value) emit('load-submissions', pack)
+}
+
+const resetAssetForm = () => {
+  Object.assign(assetForm, {
+    id: null,
+    logicalKey: '',
+    name: '',
+    categoryKey: selectedAssetCategory.value || 'VEGETATION',
+    description: '',
+    previewImageUrl: '',
+    fileUrl: '',
+    thumbnailUrl: '',
+    promptText: '',
+    negativePromptText: '',
+    generationParamsJson: '',
+    width: 1024,
+    height: 1024,
+    fileFormat: 'PNG',
+    backgroundMode: 'TRANSPARENT',
+    licenseScope: 'PACKAGE',
+    sortOrder: packAssets.value.length
+  })
+}
+
+const openAssetDetail = (asset) => {
+  activeAsset.value = asset
+  assetDetailVisible.value = true
+}
+
+const openAssetEditor = (asset = null) => {
+  resetAssetForm()
+  if (asset) {
+    Object.assign(assetForm, {
+      id: asset.id,
+      logicalKey: asset.logicalKey || '',
+      name: asset.name || '',
+      categoryKey: asset.categoryKey || 'PROPS',
+      description: asset.description || '',
+      previewImageUrl: asset.previewImageUrl || '',
+      fileUrl: asset.fileUrl || '',
+      thumbnailUrl: asset.thumbnailUrl || '',
+      promptText: asset.promptText || '',
+      negativePromptText: asset.negativePromptText || '',
+      generationParamsJson: asset.generationParamsJson || '',
+      width: asset.width || 1024,
+      height: asset.height || 1024,
+      fileFormat: asset.fileFormat || 'PNG',
+      backgroundMode: asset.backgroundMode || 'TRANSPARENT',
+      licenseScope: asset.licenseScope || 'PACKAGE',
+      sortOrder: asset.sortOrder || 0
+    })
+  }
+  assetDetailVisible.value = false
+  assetEditorVisible.value = true
+}
+
+const saveAsset = async () => {
+  if (!activePack.value?.id || !assetForm.name.trim() || !assetForm.previewImageUrl.trim()) {
+    ElMessage.warning('请填写资源名称和预览图地址')
+    return
+  }
+  assetSaving.value = true
+  try {
+    const payload = {
+      logicalKey: assetForm.logicalKey || undefined,
+      name: assetForm.name,
+      categoryKey: assetForm.categoryKey,
+      assetType: 'IMAGE',
+      description: assetForm.description,
+      previewImageUrl: assetForm.previewImageUrl,
+      fileUrl: assetForm.fileUrl,
+      thumbnailUrl: assetForm.thumbnailUrl || assetForm.previewImageUrl,
+      promptText: assetForm.promptText,
+      negativePromptText: assetForm.negativePromptText,
+      generationParamsJson: assetForm.generationParamsJson || null,
+      width: assetForm.width,
+      height: assetForm.height,
+      fileFormat: assetForm.fileFormat,
+      backgroundMode: assetForm.backgroundMode,
+      licenseScope: assetForm.licenseScope,
+      sortOrder: assetForm.sortOrder
+    }
+    if (assetForm.id) await updateStylePackageAsset(activePack.value.id, assetForm.id, payload)
+    else await createStylePackageAsset(activePack.value.id, payload)
+    ElMessage.success(assetForm.id ? '资源新修订已创建' : '资源已加入资源包')
+    assetEditorVisible.value = false
+    await loadPackResources(activePack.value)
+    emitRefresh()
+  } catch (error) {
+    ElMessage.error(error?.message || '资源保存失败')
+  } finally {
+    assetSaving.value = false
+  }
+}
+
+const archiveAsset = async (asset) => {
+  try {
+    await ElMessageBox.confirm(`归档资源“${asset.name}”？历史版本仍会保留这个修订。`, '归档资源', { type: 'warning' })
+    await archiveStylePackageAsset(activePack.value.id, asset.id)
+    assetDetailVisible.value = false
+    ElMessage.success('资源已归档')
+    await loadPackResources(activePack.value)
+    emitRefresh()
+  } catch (error) {
+    if (error === 'cancel' || error === 'close') return
+    ElMessage.error(error?.message || '资源归档失败')
+  }
+}
+
+const openManifest = async (pack) => {
+  manifestVisible.value = true
+  manifestLoading.value = true
+  manifestData.value = null
+  try {
+    manifestData.value = await getStylePackageManifest(pack.id)
+  } catch (error) {
+    manifestVisible.value = false
+    ElMessage.error(error?.message || '资源清单加载失败')
+  } finally {
+    manifestLoading.value = false
+  }
+}
+
+const openAssetFile = (asset) => {
+  if (asset?.fileUrl) window.open(asset.fileUrl, '_blank', 'noopener')
 }
 
 const openCreateDialog = () => {
@@ -1029,5 +1492,341 @@ watch(
   color: #0f766e;
   border-color: rgba(16, 185, 129, 0.26);
   background: rgba(236, 253, 245, 0.95);
+}
+
+.license-summary-block {
+  border-left: 3px solid #10b981;
+  padding-left: 14px;
+}
+
+.resource-section-heading {
+  align-items: flex-end;
+  gap: 20px;
+}
+
+.resource-section-heading > div:first-child {
+  display: grid;
+  gap: 5px;
+}
+
+.resource-section-heading h2,
+.resource-section-heading p {
+  margin: 0;
+}
+
+.resource-section-heading span {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.resource-category-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0 14px;
+}
+
+.resource-category-tabs button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #dbe5df;
+  border-radius: 6px;
+  background: #fff;
+  color: #475569;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.resource-category-tabs button span {
+  margin-left: 5px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.resource-category-tabs button.active {
+  border-color: #059669;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.resource-asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 14px;
+}
+
+.resource-asset-card {
+  min-width: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  cursor: pointer;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.resource-asset-card:hover {
+  transform: translateY(-2px);
+  border-color: #86c9ae;
+  box-shadow: 0 12px 24px rgba(15, 118, 110, 0.09);
+}
+
+.resource-asset-image {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #edf4f0;
+}
+
+.resource-asset-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.resource-asset-image span {
+  position: absolute;
+  left: 9px;
+  bottom: 9px;
+  padding: 4px 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #166534;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.resource-asset-copy {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.resource-asset-copy > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.resource-asset-copy strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #16302a;
+}
+
+.resource-asset-copy > div:first-child span {
+  flex: none;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.resource-asset-copy p {
+  min-height: 38px;
+  margin: 0;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.resource-asset-meta,
+.resource-version-stats,
+.resource-detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.resource-asset-meta span,
+.resource-version-stats span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.resource-empty-state {
+  min-height: 150px;
+  display: grid;
+  place-items: center;
+}
+
+.resource-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.1fr);
+  gap: 24px;
+}
+
+.resource-detail-preview {
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #edf4f0;
+}
+
+.resource-detail-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.resource-detail-info {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+}
+
+.resource-detail-info > p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.7;
+}
+
+.resource-spec-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.resource-spec-list div {
+  padding: 10px 12px;
+  border: 1px solid #e5ebe8;
+  border-radius: 6px;
+  background: #f8fbf9;
+}
+
+.resource-spec-list dt {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.resource-spec-list dd {
+  margin: 3px 0 0;
+  color: #16302a;
+  font-weight: 700;
+}
+
+.resource-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+}
+
+.resource-form-wide {
+  grid-column: 1 / -1;
+}
+
+.manifest-layout {
+  min-height: 240px;
+}
+
+.manifest-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid #dfe8e3;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.manifest-summary div {
+  display: grid;
+  gap: 3px;
+  padding: 14px;
+  border-right: 1px solid #dfe8e3;
+}
+
+.manifest-summary div:last-child {
+  border-right: 0;
+}
+
+.manifest-summary strong {
+  color: #065f46;
+  font-size: 20px;
+}
+
+.manifest-summary span,
+.manifest-license {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.manifest-license {
+  margin: 14px 0;
+  padding: 10px 12px;
+  border-left: 3px solid #10b981;
+  background: #f0fdf4;
+}
+
+.manifest-resource-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.manifest-resource-list button {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.manifest-resource-list img {
+  width: 64px;
+  height: 52px;
+  border-radius: 4px;
+  object-fit: cover;
+  background: #edf4f0;
+}
+
+.manifest-resource-list span {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.manifest-resource-list strong,
+.manifest-resource-list small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manifest-resource-list small {
+  color: #64748b;
+}
+
+@media (max-width: 760px) {
+  .resource-detail-layout,
+  .resource-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .resource-form-wide {
+    grid-column: auto;
+  }
+
+  .manifest-summary,
+  .manifest-resource-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .manifest-summary div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .manifest-summary div:nth-child(-n + 2) {
+    border-bottom: 1px solid #dfe8e3;
+  }
 }
 </style>

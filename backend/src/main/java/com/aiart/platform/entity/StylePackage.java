@@ -20,8 +20,13 @@ public class StylePackage {
     private String styleStatement;
     private String promptGuide;
     private String negativePromptGuide;
+    private String licenseType;
+    private String licenseSummary;
+    private Boolean commercialUse;
     private Long featuredArtworkId;
     private Integer artworkCount;
+    private Integer resourceCount;
+    private Integer categoryCount;
     private BigDecimal pricePoints;
     private String status;
     private LocalDateTime createdAt;

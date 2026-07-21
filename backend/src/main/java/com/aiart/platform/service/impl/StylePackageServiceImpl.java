@@ -4,23 +4,27 @@ import com.aiart.platform.dto.StylePackageDtos;
 import com.aiart.platform.entity.Artwork;
 import com.aiart.platform.entity.StylePackage;
 import com.aiart.platform.entity.StylePackageAccess;
+import com.aiart.platform.entity.StylePackageAsset;
 import com.aiart.platform.entity.StylePackageCollaborator;
 import com.aiart.platform.entity.StylePackageReview;
 import com.aiart.platform.entity.StylePackageSubmission;
 import com.aiart.platform.entity.StylePackageTag;
 import com.aiart.platform.entity.StylePackageVersion;
+import com.aiart.platform.entity.StylePackageVersionAsset;
 import com.aiart.platform.entity.Tag;
 import com.aiart.platform.entity.User;
 import com.aiart.platform.exception.BusinessException;
 import com.aiart.platform.exception.ErrorCode;
 import com.aiart.platform.mapper.ArtworkMapper;
 import com.aiart.platform.mapper.StylePackageAccessMapper;
+import com.aiart.platform.mapper.StylePackageAssetMapper;
 import com.aiart.platform.mapper.StylePackageCollaboratorMapper;
 import com.aiart.platform.mapper.StylePackageMapper;
 import com.aiart.platform.mapper.StylePackageReviewMapper;
 import com.aiart.platform.mapper.StylePackageSubmissionMapper;
 import com.aiart.platform.mapper.StylePackageTagMapper;
 import com.aiart.platform.mapper.StylePackageVersionMapper;
+import com.aiart.platform.mapper.StylePackageVersionAssetMapper;
 import com.aiart.platform.mapper.TagMapper;
 import com.aiart.platform.mapper.UserMapper;
 import com.aiart.platform.service.PointService;
@@ -44,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -52,8 +57,10 @@ public class StylePackageServiceImpl implements StylePackageService {
 
     private final StylePackageMapper stylePackageMapper;
     private final StylePackageAccessMapper stylePackageAccessMapper;
+    private final StylePackageAssetMapper stylePackageAssetMapper;
     private final StylePackageSubmissionMapper stylePackageSubmissionMapper;
     private final StylePackageVersionMapper stylePackageVersionMapper;
+    private final StylePackageVersionAssetMapper stylePackageVersionAssetMapper;
     private final StylePackageReviewMapper stylePackageReviewMapper;
     private final StylePackageTagMapper stylePackageTagMapper;
     private final StylePackageCollaboratorMapper stylePackageCollaboratorMapper;
@@ -169,9 +176,27 @@ public class StylePackageServiceImpl implements StylePackageService {
 
     @Override
     public StylePackageDtos.PackagePage myPackages(Long userId, StylePackageDtos.ListQuery query, int page, int size) {
-        List<StylePackage> packages = stylePackageMapper.selectList(Wrappers.<StylePackage>lambdaQuery()
+        List<StylePackage> ownedPackages = stylePackageMapper.selectList(Wrappers.<StylePackage>lambdaQuery()
                 .eq(StylePackage::getUserId, userId)
                 .orderByDesc(StylePackage::getUpdatedAt));
+        List<Long> collaborativePackageIds = stylePackageCollaboratorMapper.selectList(
+                        Wrappers.<StylePackageCollaborator>lambdaQuery()
+                                .eq(StylePackageCollaborator::getUserId, userId))
+                .stream()
+                .map(StylePackageCollaborator::getStylePackageId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, StylePackage> packageMap = new LinkedHashMap<>();
+        ownedPackages.forEach(item -> packageMap.put(item.getId(), item));
+        if (!collaborativePackageIds.isEmpty()) {
+            stylePackageMapper.selectBatchIds(collaborativePackageIds)
+                    .forEach(item -> packageMap.putIfAbsent(item.getId(), item));
+        }
+        List<StylePackage> packages = packageMap.values().stream()
+                .sorted(Comparator.comparing(StylePackage::getUpdatedAt,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
         return paginateCards(packages.stream()
                 .peek(this::refreshArtworkCount)
                 .map(stylePackage -> card(stylePackage, userId))
@@ -192,12 +217,131 @@ public class StylePackageServiceImpl implements StylePackageService {
     @Override
     public List<StylePackageDtos.VersionView> versions(Long viewerId, Long packageId, int page, int size) {
         StylePackage stylePackage = readablePackage(viewerId, packageId);
-        boolean owner = viewerId != null && stylePackage.getUserId().equals(viewerId);
-        boolean accessible = owner || isFree(stylePackage) || hasAccess(viewerId, packageId);
+        boolean accessible = canEditPackage(viewerId, packageId) || isFree(stylePackage) || hasAccess(viewerId, packageId);
         Page<StylePackageVersion> result = stylePackageVersionMapper.selectPage(page(page, size), Wrappers.<StylePackageVersion>lambdaQuery()
                 .eq(StylePackageVersion::getStylePackageId, packageId)
                 .orderByDesc(StylePackageVersion::getVersionNumber));
         return result.getRecords().stream().map(version -> versionView(version, accessible)).toList();
+    }
+
+    @Override
+    public List<StylePackageDtos.AssetView> assets(Long viewerId, Long packageId, String categoryKey) {
+        StylePackage stylePackage = readablePackage(viewerId, packageId);
+        boolean downloadable = canEditPackage(viewerId, packageId) || isFree(stylePackage) || hasAccess(viewerId, packageId);
+        var query = Wrappers.<StylePackageAsset>lambdaQuery()
+                .eq(StylePackageAsset::getStylePackageId, packageId)
+                .eq(StylePackageAsset::getStatus, "ACTIVE")
+                .orderByAsc(StylePackageAsset::getSortOrder)
+                .orderByAsc(StylePackageAsset::getCategoryKey)
+                .orderByAsc(StylePackageAsset::getName);
+        if (StringUtils.hasText(categoryKey)) {
+            query.eq(StylePackageAsset::getCategoryKey, categoryKey.trim());
+        }
+        return stylePackageAssetMapper.selectList(query).stream()
+                .map(asset -> assetView(asset, downloadable))
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public StylePackageDtos.AssetView createAsset(Long userId, Long packageId, StylePackageDtos.AssetSaveRequest request) {
+        StylePackage stylePackage = requireEditable(userId, packageId);
+        StylePackageAsset asset = newAsset(userId, packageId, request);
+        stylePackageAssetMapper.insert(asset);
+        touchResources(stylePackage, "Resource added: " + asset.getName());
+        notifyStyleWatchers(stylePackage, userId, Set.of(), "STYLE_RESOURCE_ADDED", "风格资源包新增资源",
+                "风格资源包《" + stylePackage.getName() + "》新增了资源《" + asset.getName() + "》。");
+        return assetView(asset, true);
+    }
+
+    @Override
+    @Transactional
+    public List<StylePackageDtos.AssetView> createAssets(Long userId, Long packageId,
+                                                         StylePackageDtos.AssetBatchRequest request) {
+        StylePackage stylePackage = requireEditable(userId, packageId);
+        List<StylePackageAsset> created = new ArrayList<>();
+        Set<String> logicalKeys = new LinkedHashSet<>();
+        for (StylePackageDtos.AssetSaveRequest item : request.assets()) {
+            String logicalKey = StringUtils.hasText(item.logicalKey()) ? item.logicalKey().trim() : null;
+            if (logicalKey != null && !logicalKeys.add(logicalKey)) {
+                throw new BusinessException(ErrorCode.BAD_REQUEST, "Batch contains duplicate resource logical keys");
+            }
+            ensureLogicalKeyAvailable(packageId, logicalKey);
+            StylePackageAsset asset = newAsset(userId, packageId, item);
+            stylePackageAssetMapper.insert(asset);
+            created.add(asset);
+        }
+        touchResources(stylePackage, "Batch resources added: " + created.size());
+        notifyStyleWatchers(stylePackage, userId, Set.of(), "STYLE_RESOURCE_BATCH_ADDED", "风格资源包已导入资源",
+                "风格资源包《" + stylePackage.getName() + "》批量导入了 " + created.size() + " 项资源。");
+        return created.stream().map(asset -> assetView(asset, true)).toList();
+    }
+
+    @Override
+    @Transactional
+    public StylePackageDtos.AssetView updateAsset(Long userId, Long packageId, Long assetId,
+                                                   StylePackageDtos.AssetSaveRequest request) {
+        StylePackage stylePackage = requireEditable(userId, packageId);
+        StylePackageAsset previous = requireActiveAsset(packageId, assetId);
+        previous.setStatus("SUPERSEDED");
+        previous.setUpdatedAt(LocalDateTime.now());
+        stylePackageAssetMapper.updateById(previous);
+
+        StylePackageAsset revision = new StylePackageAsset();
+        revision.setStylePackageId(packageId);
+        revision.setContributorId(userId);
+        revision.setLogicalKey(previous.getLogicalKey());
+        revision.setRevisionNumber(previous.getRevisionNumber() + 1);
+        applyAsset(revision, request);
+        revision.setStatus("ACTIVE");
+        revision.setCreatedAt(LocalDateTime.now());
+        revision.setUpdatedAt(LocalDateTime.now());
+        stylePackageAssetMapper.insert(revision);
+        touchResources(stylePackage, "Resource updated: " + revision.getName());
+        notifyStyleWatchers(stylePackage, userId, Set.of(), "STYLE_RESOURCE_UPDATED", "风格资源包资源已更新",
+                "风格资源包《" + stylePackage.getName() + "》更新了资源《" + revision.getName() + "》。");
+        return assetView(revision, true);
+    }
+
+    @Override
+    @Transactional
+    public StylePackageDtos.AssetView archiveAsset(Long userId, Long packageId, Long assetId) {
+        StylePackage stylePackage = requireEditable(userId, packageId);
+        StylePackageAsset asset = requireActiveAsset(packageId, assetId);
+        asset.setStatus("ARCHIVED");
+        asset.setUpdatedAt(LocalDateTime.now());
+        stylePackageAssetMapper.updateById(asset);
+        touchResources(stylePackage, "Resource archived: " + asset.getName());
+        notifyStyleWatchers(stylePackage, userId, Set.of(), "STYLE_RESOURCE_ARCHIVED", "风格资源包资源已归档",
+                "风格资源包《" + stylePackage.getName() + "》归档了资源《" + asset.getName() + "》。");
+        return assetView(asset, true);
+    }
+
+    @Override
+    public StylePackageDtos.AssetManifest manifest(Long userId, Long packageId) {
+        StylePackage stylePackage = readablePackage(userId, packageId);
+        boolean accessible = canEditPackage(userId, packageId) || isFree(stylePackage) || hasAccess(userId, packageId);
+        if (!accessible) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "Style package access required");
+        }
+        StylePackageVersion version = stylePackageVersionMapper.selectOne(Wrappers.<StylePackageVersion>lambdaQuery()
+                .eq(StylePackageVersion::getStylePackageId, packageId)
+                .orderByDesc(StylePackageVersion::getVersionNumber)
+                .last("LIMIT 1"));
+        List<StylePackageAsset> resources = version == null
+                ? activeAssets(packageId)
+                : versionAssets(version.getId());
+        return new StylePackageDtos.AssetManifest(
+                packageId,
+                version == null ? null : version.getId(),
+                version == null ? null : version.getVersionNumber(),
+                stylePackage.getName(),
+                stylePackage.getLicenseType(),
+                stylePackage.getLicenseSummary(),
+                Boolean.TRUE.equals(stylePackage.getCommercialUse()),
+                resources.size(),
+                (int) resources.stream().map(StylePackageAsset::getCategoryKey).filter(Objects::nonNull).distinct().count(),
+                resources.stream().map(asset -> assetView(asset, true)).toList());
     }
 
     @Override
@@ -357,12 +501,23 @@ public class StylePackageServiceImpl implements StylePackageService {
         return stylePackage;
     }
 
+    private StylePackage requireEditable(Long userId, Long packageId) {
+        StylePackage stylePackage = stylePackageMapper.selectById(packageId);
+        if (stylePackage == null || !canEditPackage(userId, packageId)) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "Style package not found");
+        }
+        if ("ARCHIVED".equals(stylePackage.getStatus())) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Archived style package cannot be edited");
+        }
+        return stylePackage;
+    }
+
     private StylePackage readablePackage(Long viewerId, Long packageId) {
         StylePackage stylePackage = stylePackageMapper.selectById(packageId);
         if (stylePackage == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "Style package not found");
         }
-        if (!"PUBLISHED".equals(stylePackage.getStatus()) && (viewerId == null || !stylePackage.getUserId().equals(viewerId))) {
+        if (!"PUBLISHED".equals(stylePackage.getStatus()) && !canEditPackage(viewerId, packageId)) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "Style package not found");
         }
         return stylePackage;
@@ -379,8 +534,62 @@ public class StylePackageServiceImpl implements StylePackageService {
         stylePackage.setStyleStatement(trimToNull(request.styleStatement()));
         stylePackage.setPromptGuide(trimToNull(request.promptGuide()));
         stylePackage.setNegativePromptGuide(trimToNull(request.negativePromptGuide()));
+        stylePackage.setLicenseType(StringUtils.hasText(request.licenseType()) ? request.licenseType().trim() : "STANDARD");
+        stylePackage.setLicenseSummary(trimToNull(request.licenseSummary()));
+        stylePackage.setCommercialUse(request.commercialUse() == null || request.commercialUse());
         stylePackage.setFeaturedArtworkId(resolveFeaturedArtworkId(ownerUserId, request.featuredArtworkId()));
         stylePackage.setPricePoints(request.pricePoints() == null ? BigDecimal.ZERO : request.pricePoints());
+    }
+
+    private void applyAsset(StylePackageAsset asset, StylePackageDtos.AssetSaveRequest request) {
+        String assetType = StringUtils.hasText(request.assetType()) ? request.assetType().trim().toUpperCase() : "IMAGE";
+        if (!"IMAGE".equals(assetType)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Only image resources are supported in this version");
+        }
+        asset.setName(request.name().trim());
+        asset.setCategoryKey(request.categoryKey().trim());
+        asset.setAssetType(assetType);
+        asset.setDescription(trimToNull(request.description()));
+        asset.setPreviewImageUrl(request.previewImageUrl().trim());
+        asset.setFileUrl(trimToNull(request.fileUrl()));
+        asset.setThumbnailUrl(trimToNull(request.thumbnailUrl()));
+        asset.setPromptText(trimToNull(request.promptText()));
+        asset.setNegativePromptText(trimToNull(request.negativePromptText()));
+        asset.setGenerationParamsJson(trimToNull(request.generationParamsJson()));
+        asset.setWidth(request.width());
+        asset.setHeight(request.height());
+        asset.setFileFormat(StringUtils.hasText(request.fileFormat()) ? request.fileFormat().trim().toUpperCase() : "PNG");
+        asset.setBackgroundMode(StringUtils.hasText(request.backgroundMode()) ? request.backgroundMode().trim().toUpperCase() : "SOLID");
+        asset.setLicenseScope(StringUtils.hasText(request.licenseScope()) ? request.licenseScope().trim().toUpperCase() : "PACKAGE");
+        asset.setSortOrder(request.sortOrder() == null ? 0 : request.sortOrder());
+    }
+
+    private StylePackageAsset newAsset(Long userId, Long packageId, StylePackageDtos.AssetSaveRequest request) {
+        String logicalKey = StringUtils.hasText(request.logicalKey()) ? request.logicalKey().trim() : null;
+        ensureLogicalKeyAvailable(packageId, logicalKey);
+        StylePackageAsset asset = new StylePackageAsset();
+        asset.setStylePackageId(packageId);
+        asset.setContributorId(userId);
+        asset.setLogicalKey(logicalKey == null ? UUID.randomUUID().toString().replace("-", "") : logicalKey);
+        asset.setRevisionNumber(1);
+        applyAsset(asset, request);
+        asset.setStatus("ACTIVE");
+        asset.setCreatedAt(LocalDateTime.now());
+        asset.setUpdatedAt(LocalDateTime.now());
+        return asset;
+    }
+
+    private void ensureLogicalKeyAvailable(Long packageId, String logicalKey) {
+        if (!StringUtils.hasText(logicalKey)) {
+            return;
+        }
+        if (stylePackageAssetMapper.selectCount(Wrappers.<StylePackageAsset>lambdaQuery()
+                .eq(StylePackageAsset::getStylePackageId, packageId)
+                .eq(StylePackageAsset::getLogicalKey, logicalKey)
+                .eq(StylePackageAsset::getStatus, "ACTIVE")) > 0) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST,
+                    "Resource logical key already exists; use the revision update endpoint");
+        }
     }
 
     private Long resolveFeaturedArtworkId(Long ownerUserId, Long artworkId) {
@@ -548,11 +757,15 @@ public class StylePackageServiceImpl implements StylePackageService {
                     String tagText = card.tags().stream()
                             .map(tag -> String.join(" ", safe(tag.displayNameZh()), safe(tag.name())))
                             .reduce("", (left, right) -> left + " " + right);
+                    String assetText = card.assetPreviews().stream()
+                            .map(asset -> String.join(" ", safe(asset.name()), safe(asset.categoryKey())))
+                            .reduce("", (left, right) -> left + " " + right);
                     String text = String.join(" ",
                             safe(card.name()),
                             safe(card.description()),
                             safe(card.styleStatement()),
-                            tagText).toLowerCase();
+                            tagText,
+                            assetText).toLowerCase();
                     return text.contains(keyword);
                 })
                 .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
@@ -561,7 +774,9 @@ public class StylePackageServiceImpl implements StylePackageService {
     private void sortCards(List<StylePackageDtos.Card> cards, String sort) {
         String sortKey = lowerTrim(sort);
         Comparator<StylePackageDtos.Card> comparator;
-        if ("artworks".equals(sortKey)) {
+        if ("resources".equals(sortKey)) {
+            comparator = Comparator.comparingLong((StylePackageDtos.Card item) -> item.stats().resourceCount()).reversed();
+        } else if ("artworks".equals(sortKey)) {
             comparator = Comparator.comparingLong((StylePackageDtos.Card item) -> item.stats().approvedArtworkCount()).reversed();
         } else if ("rating".equals(sortKey)) {
             comparator = Comparator.comparingDouble((StylePackageDtos.Card item) -> item.stats().averageRating()).reversed();
@@ -589,7 +804,8 @@ public class StylePackageServiceImpl implements StylePackageService {
 
     private StylePackageDtos.Card card(StylePackage stylePackage, Long viewerId) {
         boolean owner = viewerId != null && stylePackage.getUserId().equals(viewerId);
-        boolean accessible = owner || isFree(stylePackage) || hasAccess(viewerId, stylePackage.getId());
+        boolean editable = canEditPackage(viewerId, stylePackage.getId());
+        boolean accessible = editable || isFree(stylePackage) || hasAccess(viewerId, stylePackage.getId());
         return new StylePackageDtos.Card(
                 stylePackage.getId(),
                 stylePackage.getName(),
@@ -598,14 +814,19 @@ public class StylePackageServiceImpl implements StylePackageService {
                 stylePackage.getStyleStatement(),
                 accessible ? stylePackage.getPromptGuide() : null,
                 accessible ? stylePackage.getNegativePromptGuide() : null,
+                stylePackage.getLicenseType(),
+                stylePackage.getLicenseSummary(),
+                Boolean.TRUE.equals(stylePackage.getCommercialUse()),
                 stylePackage.getFeaturedArtworkId(),
                 stylePackage.getPricePoints(),
                 stylePackage.getStatus(),
                 stylePackage.getUserId(),
                 owner,
+                editable,
                 accessible,
                 stats(stylePackage.getId()),
                 tags(stylePackage.getId()),
+                assetPreviews(stylePackage.getId(), 5),
                 approvedArtworkSummaries(stylePackage.getId(), 4),
                 collaborators(stylePackage.getId()),
                 stylePackage.getCreatedAt(),
@@ -614,7 +835,8 @@ public class StylePackageServiceImpl implements StylePackageService {
 
     private StylePackageDtos.Detail detailView(StylePackage stylePackage, Long viewerId) {
         boolean owner = viewerId != null && stylePackage.getUserId().equals(viewerId);
-        boolean accessible = owner || isFree(stylePackage) || hasAccess(viewerId, stylePackage.getId());
+        boolean editable = canEditPackage(viewerId, stylePackage.getId());
+        boolean accessible = editable || isFree(stylePackage) || hasAccess(viewerId, stylePackage.getId());
         return new StylePackageDtos.Detail(
                 stylePackage.getId(),
                 stylePackage.getName(),
@@ -623,14 +845,19 @@ public class StylePackageServiceImpl implements StylePackageService {
                 stylePackage.getStyleStatement(),
                 accessible ? stylePackage.getPromptGuide() : null,
                 accessible ? stylePackage.getNegativePromptGuide() : null,
+                stylePackage.getLicenseType(),
+                stylePackage.getLicenseSummary(),
+                Boolean.TRUE.equals(stylePackage.getCommercialUse()),
                 stylePackage.getFeaturedArtworkId(),
                 stylePackage.getPricePoints(),
                 stylePackage.getStatus(),
                 stylePackage.getUserId(),
                 owner,
+                editable,
                 accessible,
                 stats(stylePackage.getId()),
                 tags(stylePackage.getId()),
+                assetPreviews(stylePackage.getId(), 12),
                 approvedArtworkSummaries(stylePackage.getId(), 12),
                 collaborators(stylePackage.getId()),
                 stylePackage.getCreatedAt(),
@@ -650,12 +877,24 @@ public class StylePackageServiceImpl implements StylePackageService {
         version.setStyleStatement(stylePackage.getStyleStatement());
         version.setPromptGuide(stylePackage.getPromptGuide());
         version.setNegativePromptGuide(stylePackage.getNegativePromptGuide());
+        version.setLicenseType(stylePackage.getLicenseType());
+        version.setLicenseSummary(stylePackage.getLicenseSummary());
+        version.setCommercialUse(stylePackage.getCommercialUse());
         version.setFeaturedArtworkId(stylePackage.getFeaturedArtworkId());
         version.setArtworkCount(stylePackage.getArtworkCount() == null ? 0 : stylePackage.getArtworkCount());
+        version.setResourceCount(stylePackage.getResourceCount() == null ? 0 : stylePackage.getResourceCount());
+        version.setCategoryCount(stylePackage.getCategoryCount() == null ? 0 : stylePackage.getCategoryCount());
         version.setPricePoints(stylePackage.getPricePoints());
         version.setChangeNote(changeNote);
         version.setCreatedAt(LocalDateTime.now());
         stylePackageVersionMapper.insert(version);
+        for (StylePackageAsset asset : activeAssets(stylePackage.getId())) {
+            StylePackageVersionAsset relation = new StylePackageVersionAsset();
+            relation.setStylePackageVersionId(version.getId());
+            relation.setStylePackageAssetId(asset.getId());
+            relation.setCreatedAt(LocalDateTime.now());
+            stylePackageVersionAssetMapper.insert(relation);
+        }
     }
 
     private void refreshArtworkCount(StylePackage stylePackage) {
@@ -666,6 +905,23 @@ public class StylePackageServiceImpl implements StylePackageService {
         if (!Objects.equals(stylePackage.getArtworkCount(), newCount)) {
             stylePackage.setArtworkCount(newCount);
         }
+    }
+
+    private void refreshResourceCounts(StylePackage stylePackage) {
+        List<StylePackageAsset> assets = activeAssets(stylePackage.getId());
+        stylePackage.setResourceCount(assets.size());
+        stylePackage.setCategoryCount((int) assets.stream()
+                .map(StylePackageAsset::getCategoryKey)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .count());
+    }
+
+    private void touchResources(StylePackage stylePackage, String changeNote) {
+        refreshResourceCounts(stylePackage);
+        stylePackage.setUpdatedAt(LocalDateTime.now());
+        stylePackageMapper.updateById(stylePackage);
+        snapshotVersion(stylePackage, changeNote);
     }
 
     private StylePackageDtos.Stats stats(Long packageId) {
@@ -680,6 +936,12 @@ public class StylePackageServiceImpl implements StylePackageService {
                 .eq(StylePackageVersion::getStylePackageId, packageId));
         long collaboratorCount = stylePackageCollaboratorMapper.selectCount(Wrappers.<StylePackageCollaborator>lambdaQuery()
                 .eq(StylePackageCollaborator::getStylePackageId, packageId));
+        List<StylePackageAsset> resources = activeAssets(packageId);
+        long categoryCount = resources.stream()
+                .map(StylePackageAsset::getCategoryKey)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .count();
         List<StylePackageReview> reviews = stylePackageReviewMapper.selectList(Wrappers.<StylePackageReview>lambdaQuery()
                 .eq(StylePackageReview::getStylePackageId, packageId));
         double averageRating = reviews.isEmpty() ? 0 : reviews.stream()
@@ -690,7 +952,7 @@ public class StylePackageServiceImpl implements StylePackageService {
                 .orElse(0);
         double roundedRating = BigDecimal.valueOf(averageRating).setScale(1, RoundingMode.HALF_UP).doubleValue();
         return new StylePackageDtos.Stats(accessCount, submissionCount, approvedArtworkCount, versionCount,
-                reviews.size(), collaboratorCount, roundedRating);
+                reviews.size(), collaboratorCount, resources.size(), categoryCount, roundedRating);
     }
 
     private List<StylePackageDtos.TagSummary> tags(Long packageId) {
@@ -740,6 +1002,85 @@ public class StylePackageServiceImpl implements StylePackageService {
         return summaries;
     }
 
+    private List<StylePackageDtos.AssetPreview> assetPreviews(Long packageId, int limit) {
+        return activeAssets(packageId).stream()
+                .limit(Math.max(1, limit))
+                .map(asset -> new StylePackageDtos.AssetPreview(
+                        asset.getId(),
+                        asset.getLogicalKey(),
+                        asset.getName(),
+                        asset.getCategoryKey(),
+                        asset.getPreviewImageUrl(),
+                        asset.getThumbnailUrl(),
+                        asset.getRevisionNumber()))
+                .toList();
+    }
+
+    private List<StylePackageAsset> activeAssets(Long packageId) {
+        return stylePackageAssetMapper.selectList(Wrappers.<StylePackageAsset>lambdaQuery()
+                .eq(StylePackageAsset::getStylePackageId, packageId)
+                .eq(StylePackageAsset::getStatus, "ACTIVE")
+                .orderByAsc(StylePackageAsset::getSortOrder)
+                .orderByAsc(StylePackageAsset::getCategoryKey)
+                .orderByAsc(StylePackageAsset::getName));
+    }
+
+    private List<StylePackageAsset> versionAssets(Long versionId) {
+        List<StylePackageVersionAsset> relations = stylePackageVersionAssetMapper.selectList(
+                Wrappers.<StylePackageVersionAsset>lambdaQuery()
+                        .eq(StylePackageVersionAsset::getStylePackageVersionId, versionId)
+                        .orderByAsc(StylePackageVersionAsset::getCreatedAt));
+        if (relations.isEmpty()) {
+            return List.of();
+        }
+        List<Long> ids = relations.stream().map(StylePackageVersionAsset::getStylePackageAssetId).toList();
+        Map<Long, StylePackageAsset> resourceMap = new LinkedHashMap<>();
+        for (StylePackageAsset asset : stylePackageAssetMapper.selectBatchIds(ids)) {
+            resourceMap.put(asset.getId(), asset);
+        }
+        return ids.stream().map(resourceMap::get).filter(Objects::nonNull).toList();
+    }
+
+    private StylePackageAsset requireActiveAsset(Long packageId, Long assetId) {
+        StylePackageAsset asset = stylePackageAssetMapper.selectOne(Wrappers.<StylePackageAsset>lambdaQuery()
+                .eq(StylePackageAsset::getId, assetId)
+                .eq(StylePackageAsset::getStylePackageId, packageId)
+                .eq(StylePackageAsset::getStatus, "ACTIVE"));
+        if (asset == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "Style package resource not found");
+        }
+        return asset;
+    }
+
+    private StylePackageDtos.AssetView assetView(StylePackageAsset asset, boolean downloadable) {
+        return new StylePackageDtos.AssetView(
+                asset.getId(),
+                asset.getStylePackageId(),
+                asset.getContributorId(),
+                asset.getLogicalKey(),
+                asset.getRevisionNumber(),
+                asset.getName(),
+                asset.getCategoryKey(),
+                asset.getAssetType(),
+                asset.getDescription(),
+                asset.getPreviewImageUrl(),
+                downloadable ? asset.getFileUrl() : null,
+                asset.getThumbnailUrl(),
+                downloadable ? asset.getPromptText() : null,
+                downloadable ? asset.getNegativePromptText() : null,
+                downloadable ? asset.getGenerationParamsJson() : null,
+                asset.getWidth(),
+                asset.getHeight(),
+                asset.getFileFormat(),
+                asset.getBackgroundMode(),
+                asset.getLicenseScope(),
+                asset.getStatus(),
+                asset.getSortOrder(),
+                downloadable,
+                asset.getCreatedAt(),
+                asset.getUpdatedAt());
+    }
+
     private List<StylePackageDtos.CollaboratorSummary> collaborators(Long packageId) {
         List<StylePackageCollaborator> relations = stylePackageCollaboratorMapper.selectList(Wrappers.<StylePackageCollaborator>lambdaQuery()
                 .eq(StylePackageCollaborator::getStylePackageId, packageId)
@@ -778,8 +1119,13 @@ public class StylePackageServiceImpl implements StylePackageService {
                 version.getStyleStatement(),
                 accessible ? version.getPromptGuide() : null,
                 accessible ? version.getNegativePromptGuide() : null,
+                version.getLicenseType(),
+                version.getLicenseSummary(),
+                Boolean.TRUE.equals(version.getCommercialUse()),
                 version.getFeaturedArtworkId(),
                 version.getArtworkCount(),
+                version.getResourceCount(),
+                version.getCategoryCount(),
                 version.getPricePoints(),
                 version.getChangeNote(),
                 version.getCreatedAt());
@@ -805,6 +1151,22 @@ public class StylePackageServiceImpl implements StylePackageService {
 
     private boolean isFree(StylePackage stylePackage) {
         return stylePackage.getPricePoints() == null || stylePackage.getPricePoints().compareTo(BigDecimal.ZERO) <= 0;
+    }
+
+    private boolean canEditPackage(Long userId, Long packageId) {
+        if (userId == null) {
+            return false;
+        }
+        StylePackage stylePackage = stylePackageMapper.selectById(packageId);
+        if (stylePackage == null) {
+            return false;
+        }
+        if (Objects.equals(stylePackage.getUserId(), userId)) {
+            return true;
+        }
+        return stylePackageCollaboratorMapper.selectCount(Wrappers.<StylePackageCollaborator>lambdaQuery()
+                .eq(StylePackageCollaborator::getStylePackageId, packageId)
+                .eq(StylePackageCollaborator::getUserId, userId)) > 0;
     }
 
     private boolean hasAccess(Long userId, Long packageId) {

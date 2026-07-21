@@ -16,3 +16,8 @@ export const reviewStylePackageSubmission = (id, payload) => client.post(`/style
 export const getMyStylePackages = (params = {}) => client.get('/style-packages/my', { params })
 export const getMarketStylePackages = (params = {}) => client.get('/style-packages/market', { params })
 export const getStylePackageDetail = (id) => client.get(`/style-packages/${id}`)
+export const getStylePackageAssets = (id, params = {}) => client.get(`/style-packages/${id}/assets`, { params })
+export const createStylePackageAsset = (id, payload) => client.post(`/style-packages/${id}/assets`, payload)
+export const updateStylePackageAsset = (id, assetId, payload) => client.put(`/style-packages/${id}/assets/${assetId}`, payload)
+export const archiveStylePackageAsset = (id, assetId) => client.post(`/style-packages/${id}/assets/${assetId}/archive`)
+export const getStylePackageManifest = (id) => client.get(`/style-packages/${id}/manifest`)

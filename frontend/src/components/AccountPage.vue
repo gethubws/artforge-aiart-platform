@@ -50,7 +50,7 @@
             <strong>{{ myTasks.length }}</strong>
           </div>
           <div class="mini-kpi">
-            <span>我的风格包</span>
+            <span>我的资源包</span>
             <strong>{{ myStylePackages.length }}</strong>
           </div>
           <div class="mini-kpi">
@@ -86,15 +86,15 @@
             <span>管理你发布的任务与投稿审核</span>
           </button>
           <button type="button" class="quick-link-card" @click="$emit('go-view', 'my-styles')">
-            <strong>我的风格包</strong>
-            <span>维护风格包内容、协作与收录作品</span>
+            <strong>我的资源包</strong>
+            <span>维护包内资源、版本授权与协作成员</span>
           </button>
           <button type="button" class="quick-link-card" @click="$emit('go-view', 'task-market')">
             <strong>任务市场</strong>
             <span>浏览任务并继续投稿</span>
           </button>
           <button type="button" class="quick-link-card" @click="$emit('go-view', 'style-market')">
-            <strong>风格市场</strong>
+            <strong>风格资源市场</strong>
             <span>查看风格成果集合与更新</span>
           </button>
           <button

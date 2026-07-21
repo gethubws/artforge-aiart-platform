@@ -1,0 +1,327 @@
+{
+  "name": "翡翠童话森林",
+  "slug": "emerald-fable",
+  "cover": "cover.png",
+  "assets": [
+    {
+      "name": "萤光古橡树",
+      "categoryKey": "VEGETATION",
+      "filename": "vegetation-01.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. an ancient luminous oak tree"
+    },
+    {
+      "name": "翡翠蕨丛",
+      "categoryKey": "VEGETATION",
+      "filename": "vegetation-02.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a dense emerald fern cluster"
+    },
+    {
+      "name": "星点蘑菇簇",
+      "categoryKey": "VEGETATION",
+      "filename": "vegetation-03.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a cluster of star-speckled mushrooms"
+    },
+    {
+      "name": "卷叶草坪块",
+      "categoryKey": "VEGETATION",
+      "filename": "vegetation-04.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a curled-leaf grass tile"
+    },
+    {
+      "name": "林地炼金小屋",
+      "categoryKey": "ARCHITECTURE",
+      "filename": "architecture-01.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a tiny woodland alchemist cottage"
+    },
+    {
+      "name": "金叶石门",
+      "categoryKey": "ARCHITECTURE",
+      "filename": "architecture-02.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a pale-gold leaf stone gate"
+    },
+    {
+      "name": "月泉祭坛",
+      "categoryKey": "ARCHITECTURE",
+      "filename": "architecture-03.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a moonwell forest shrine"
+    },
+    {
+      "name": "苔桥",
+      "categoryKey": "ARCHITECTURE",
+      "filename": "architecture-04.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a moss-covered arched bridge"
+    },
+    {
+      "name": "萤石提灯",
+      "categoryKey": "PROPS",
+      "filename": "props-01.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a glowing gemstone lantern"
+    },
+    {
+      "name": "藤蔓宝箱",
+      "categoryKey": "PROPS",
+      "filename": "props-02.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a vine-wrapped treasure chest"
+    },
+    {
+      "name": "森林药剂瓶",
+      "categoryKey": "PROPS",
+      "filename": "props-03.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a forest potion bottle"
+    },
+    {
+      "name": "蘑菇路牌",
+      "categoryKey": "PROPS",
+      "filename": "props-04.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a mushroom-shaped wooden signpost"
+    },
+    {
+      "name": "翡翠游侠",
+      "categoryKey": "CHARACTERS",
+      "filename": "characters-01.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a full-body emerald forest ranger"
+    },
+    {
+      "name": "月露法师",
+      "categoryKey": "CHARACTERS",
+      "filename": "characters-02.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a full-body moon-dew mage"
+    },
+    {
+      "name": "林地商人",
+      "categoryKey": "CHARACTERS",
+      "filename": "characters-03.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a full-body friendly woodland merchant"
+    },
+    {
+      "name": "金叶守卫",
+      "categoryKey": "CHARACTERS",
+      "filename": "characters-04.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a full-body pale-gold leaf guardian"
+    },
+    {
+      "name": "苔角鹿",
+      "categoryKey": "CREATURES",
+      "filename": "creatures-01.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a moss-antler deer"
+    },
+    {
+      "name": "珊瑚尾狐",
+      "categoryKey": "CREATURES",
+      "filename": "creatures-02.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a coral-tailed fox"
+    },
+    {
+      "name": "月羽猫头鹰",
+      "categoryKey": "CREATURES",
+      "filename": "creatures-03.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a moon-feather owl"
+    },
+    {
+      "name": "露珠史莱姆",
+      "categoryKey": "CREATURES",
+      "filename": "creatures-04.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a translucent dew-drop slime"
+    },
+    {
+      "name": "苔石地砖",
+      "categoryKey": "TERRAIN",
+      "filename": "terrain-01.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a seamless mossy stone ground tile"
+    },
+    {
+      "name": "翡翠悬崖块",
+      "categoryKey": "TERRAIN",
+      "filename": "terrain-02.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a modular emerald cliff chunk"
+    },
+    {
+      "name": "林地木板路",
+      "categoryKey": "TERRAIN",
+      "filename": "terrain-03.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a modular woodland plank path"
+    },
+    {
+      "name": "月泉水面块",
+      "categoryKey": "TERRAIN",
+      "filename": "terrain-04.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SOLID",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a seamless moonwell water tile"
+    },
+    {
+      "name": "生命叶图标",
+      "categoryKey": "UI",
+      "filename": "ui-01.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SCENE",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a leaf-shaped health icon"
+    },
+    {
+      "name": "法力露珠图标",
+      "categoryKey": "UI",
+      "filename": "ui-02.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SCENE",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a dew-drop mana icon"
+    },
+    {
+      "name": "任务卷轴图标",
+      "categoryKey": "UI",
+      "filename": "ui-03.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SCENE",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a quest scroll icon"
+    },
+    {
+      "name": "背包按钮图标",
+      "categoryKey": "UI",
+      "filename": "ui-04.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SCENE",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a backpack menu icon"
+    },
+    {
+      "name": "萤火粒子效果",
+      "categoryKey": "BACKGROUNDS",
+      "filename": "effects-01.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SCENE",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a firefly particle effect cluster"
+    },
+    {
+      "name": "月泉法阵",
+      "categoryKey": "BACKGROUNDS",
+      "filename": "effects-02.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SCENE",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a moonwell magic circle"
+    },
+    {
+      "name": "叶片冲击效果",
+      "categoryKey": "BACKGROUNDS",
+      "filename": "effects-03.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SCENE",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. a leaf burst impact effect"
+    },
+    {
+      "name": "森林传送门",
+      "categoryKey": "BACKGROUNDS",
+      "filename": "effects-04.png",
+      "width": 627,
+      "height": 627,
+      "fileFormat": "PNG",
+      "backgroundMode": "SCENE",
+      "promptText": "Emerald Fable Forest game art direction: polished stylized hand-painted 3D fantasy, jade green and moss, pale gold trim, restrained coral accents, soft diffuse daylight, rounded readable silhouettes, tactile painted surfaces, coherent premium indie game asset pack. an emerald forest portal"
+    }
+  ]
+}

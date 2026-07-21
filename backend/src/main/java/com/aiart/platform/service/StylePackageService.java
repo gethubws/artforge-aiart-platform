@@ -23,6 +23,20 @@ public interface StylePackageService {
 
     List<StylePackageDtos.VersionView> versions(Long viewerId, Long packageId, int page, int size);
 
+    List<StylePackageDtos.AssetView> assets(Long viewerId, Long packageId, String categoryKey);
+
+    StylePackageDtos.AssetView createAsset(Long userId, Long packageId, StylePackageDtos.AssetSaveRequest request);
+
+    List<StylePackageDtos.AssetView> createAssets(Long userId, Long packageId,
+                                                  StylePackageDtos.AssetBatchRequest request);
+
+    StylePackageDtos.AssetView updateAsset(Long userId, Long packageId, Long assetId,
+                                            StylePackageDtos.AssetSaveRequest request);
+
+    StylePackageDtos.AssetView archiveAsset(Long userId, Long packageId, Long assetId);
+
+    StylePackageDtos.AssetManifest manifest(Long userId, Long packageId);
+
     List<StylePackageDtos.RatingView> reviews(Long viewerId, Long packageId, int page, int size);
 
     StylePackageDtos.RatingView saveReview(Long userId, Long packageId, StylePackageDtos.RatingRequest request);

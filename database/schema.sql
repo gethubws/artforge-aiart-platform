@@ -169,8 +169,13 @@ CREATE TABLE IF NOT EXISTS style_package (
   style_statement TEXT,
   prompt_guide TEXT,
   negative_prompt_guide TEXT,
+  license_type VARCHAR(64) NOT NULL DEFAULT 'STANDARD',
+  license_summary VARCHAR(500),
+  commercial_use TINYINT(1) NOT NULL DEFAULT 1,
   featured_artwork_id BIGINT,
   artwork_count INT NOT NULL DEFAULT 0,
+  resource_count INT NOT NULL DEFAULT 0,
+  category_count INT NOT NULL DEFAULT 0,
   price_points DECIMAL(18,2) NOT NULL DEFAULT 0.00,
   status VARCHAR(32) NOT NULL DEFAULT 'DRAFT',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -193,8 +198,13 @@ CREATE TABLE IF NOT EXISTS style_package_version (
   style_statement TEXT,
   prompt_guide TEXT,
   negative_prompt_guide TEXT,
+  license_type VARCHAR(64) NOT NULL DEFAULT 'STANDARD',
+  license_summary VARCHAR(500),
+  commercial_use TINYINT(1) NOT NULL DEFAULT 1,
   featured_artwork_id BIGINT,
   artwork_count INT NOT NULL DEFAULT 0,
+  resource_count INT NOT NULL DEFAULT 0,
+  category_count INT NOT NULL DEFAULT 0,
   price_points DECIMAL(18,2) NOT NULL DEFAULT 0.00,
   change_note VARCHAR(255),
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -205,6 +215,50 @@ CREATE TABLE IF NOT EXISTS style_package_version (
   CONSTRAINT fk_style_version_package FOREIGN KEY (style_package_id) REFERENCES style_package(id),
   CONSTRAINT fk_style_version_user FOREIGN KEY (user_id) REFERENCES users(id),
   CONSTRAINT fk_style_version_featured_artwork FOREIGN KEY (featured_artwork_id) REFERENCES artwork(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS style_package_asset (
+  id BIGINT PRIMARY KEY,
+  style_package_id BIGINT NOT NULL,
+  contributor_id BIGINT NOT NULL,
+  logical_key VARCHAR(80) NOT NULL,
+  revision_number INT NOT NULL DEFAULT 1,
+  name VARCHAR(120) NOT NULL,
+  category_key VARCHAR(64) NOT NULL,
+  asset_type VARCHAR(40) NOT NULL DEFAULT 'IMAGE',
+  description TEXT,
+  preview_image_url VARCHAR(512) NOT NULL,
+  file_url VARCHAR(512),
+  thumbnail_url VARCHAR(512),
+  prompt_text TEXT,
+  negative_prompt_text TEXT,
+  generation_params_json JSON,
+  width INT,
+  height INT,
+  file_format VARCHAR(20),
+  background_mode VARCHAR(32) NOT NULL DEFAULT 'SOLID',
+  license_scope VARCHAR(64) NOT NULL DEFAULT 'PACKAGE',
+  status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_style_asset_revision (style_package_id, logical_key, revision_number),
+  INDEX idx_style_asset_package_status (style_package_id, status, sort_order),
+  INDEX idx_style_asset_category (style_package_id, category_key, status),
+  INDEX idx_style_asset_contributor (contributor_id, created_at),
+  CONSTRAINT fk_style_asset_package FOREIGN KEY (style_package_id) REFERENCES style_package(id),
+  CONSTRAINT fk_style_asset_contributor FOREIGN KEY (contributor_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS style_package_version_asset (
+  id BIGINT PRIMARY KEY,
+  style_package_version_id BIGINT NOT NULL,
+  style_package_asset_id BIGINT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_style_version_asset (style_package_version_id, style_package_asset_id),
+  INDEX idx_style_version_asset_asset (style_package_asset_id),
+  CONSTRAINT fk_style_version_asset_version FOREIGN KEY (style_package_version_id) REFERENCES style_package_version(id),
+  CONSTRAINT fk_style_version_asset_asset FOREIGN KEY (style_package_asset_id) REFERENCES style_package_asset(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS style_package_review (

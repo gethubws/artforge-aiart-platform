@@ -590,7 +590,7 @@ const router = useRouter()
 const auth = useAuthStore()
 
 const currentUser = computed(() => auth.currentUser.value)
-const activeView = ref('workbench')
+const activeView = ref('style-market')
 const promptBuilderVisible = ref(false)
 const previewVisible = ref(false)
 const detailVisible = ref(false)
@@ -685,6 +685,9 @@ const styleForm = reactive({
   styleStatement: '',
   promptGuide: '',
   negativePromptGuide: '',
+  licenseType: 'STANDARD',
+  licenseSummary: '购买后可在个人与商业项目中使用包内资源，不得单独转售或重新分发原始文件。',
+  commercialUse: true,
   featuredArtworkId: null,
   tagNames: [],
   collaborators: [],
@@ -1637,6 +1640,9 @@ function resetStyleForm() {
     styleStatement: '',
     promptGuide: '',
     negativePromptGuide: '',
+    licenseType: 'STANDARD',
+    licenseSummary: '购买后可在个人与商业项目中使用包内资源，不得单独转售或重新分发原始文件。',
+    commercialUse: true,
     featuredArtworkId: null,
     tagNames: [],
     collaborators: [],
@@ -1653,6 +1659,9 @@ function editStylePackage(pack) {
     styleStatement: pack.styleStatement || '',
     promptGuide: pack.promptGuide || '',
     negativePromptGuide: pack.negativePromptGuide || '',
+    licenseType: pack.licenseType || 'STANDARD',
+    licenseSummary: pack.licenseSummary || '',
+    commercialUse: pack.commercialUse !== false,
     featuredArtworkId: pack.featuredArtworkId || null,
     tagNames: (pack.tags || []).map((tag) => tag.name).filter(Boolean),
     collaborators: (pack.collaborators || []).map((user) => ({
@@ -1673,6 +1682,9 @@ async function saveStylePackage() {
       styleStatement: styleForm.styleStatement,
       promptGuide: styleForm.promptGuide,
       negativePromptGuide: styleForm.negativePromptGuide,
+      licenseType: styleForm.licenseType,
+      licenseSummary: styleForm.licenseSummary,
+      commercialUse: styleForm.commercialUse,
       featuredArtworkId: styleForm.featuredArtworkId,
       pricePoints: styleForm.pricePoints,
       tagNames: styleForm.tagNames,
@@ -2309,10 +2321,10 @@ async function reviewContentAudit({ audit, status }) {
 function styleStatsItems(pack) {
   const stats = pack?.stats || {}
   return [
-    { label: '评分', value: Number(stats.averageRating || 0).toFixed(1) },
-    { label: '收录', value: stats.approvedArtworkCount || pack?.artworks?.length || 0 },
-    { label: '协作', value: stats.collaboratorCount || 0 },
-    { label: '版本', value: stats.versionCount || 0 }
+    { label: '项资源', value: stats.resourceCount || pack?.assetPreviews?.length || 0 },
+    { label: '类目', value: stats.categoryCount || 0 },
+    { label: '版本', value: stats.versionCount || 0 },
+    { label: '评分', value: Number(stats.averageRating || 0).toFixed(1) }
   ]
 }
 

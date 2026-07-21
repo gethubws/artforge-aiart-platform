@@ -46,7 +46,7 @@
           <el-dropdown-menu>
             <el-dropdown-item @click="$emit('navigate', 'account')">个人中心</el-dropdown-item>
             <el-dropdown-item @click="$emit('navigate', 'library')">作品库</el-dropdown-item>
-            <el-dropdown-item @click="$emit('navigate', 'my-styles')">我的风格包</el-dropdown-item>
+            <el-dropdown-item @click="$emit('navigate', 'my-styles')">我的资源包</el-dropdown-item>
             <el-dropdown-item @click="$emit('navigate', 'my-tasks')">我的任务</el-dropdown-item>
             <el-dropdown-item @click="$emit('navigate', 'models')">模型资源</el-dropdown-item>
             <el-dropdown-item v-if="isAdmin" @click="$emit('navigate', 'admin')">后台审核</el-dropdown-item>
@@ -73,7 +73,7 @@ defineEmits(['navigate', 'refresh-provider', 'refresh-artworks', 'logout', 'open
 const tabs = [
   { name: 'workbench', label: '工作台' },
   { name: 'community', label: '广场' },
-  { name: 'style-market', label: '风格市场' },
+  { name: 'style-market', label: '资源市场' },
   { name: 'task-market', label: '任务市场' },
   { name: 'models', label: '模型资源' }
 ]

@@ -77,6 +77,42 @@ public class StylePackageController {
         return ApiResponse.ok(stylePackageService.versions(currentUser.userIdOrNull(), packageId, page, size));
     }
 
+    @GetMapping("/{packageId}/assets")
+    public ApiResponse<List<StylePackageDtos.AssetView>> assets(@PathVariable Long packageId,
+                                                               @RequestParam(required = false) String categoryKey) {
+        return ApiResponse.ok(stylePackageService.assets(currentUser.userIdOrNull(), packageId, categoryKey));
+    }
+
+    @PostMapping("/{packageId}/assets")
+    public ApiResponse<StylePackageDtos.AssetView> createAsset(@PathVariable Long packageId,
+                                                              @Valid @RequestBody StylePackageDtos.AssetSaveRequest request) {
+        return ApiResponse.ok(stylePackageService.createAsset(currentUser.requireUserId(), packageId, request));
+    }
+
+    @PostMapping("/{packageId}/assets/batch")
+    public ApiResponse<List<StylePackageDtos.AssetView>> createAssets(@PathVariable Long packageId,
+                                                                     @Valid @RequestBody StylePackageDtos.AssetBatchRequest request) {
+        return ApiResponse.ok(stylePackageService.createAssets(currentUser.requireUserId(), packageId, request));
+    }
+
+    @PutMapping("/{packageId}/assets/{assetId}")
+    public ApiResponse<StylePackageDtos.AssetView> updateAsset(@PathVariable Long packageId,
+                                                              @PathVariable Long assetId,
+                                                              @Valid @RequestBody StylePackageDtos.AssetSaveRequest request) {
+        return ApiResponse.ok(stylePackageService.updateAsset(currentUser.requireUserId(), packageId, assetId, request));
+    }
+
+    @PostMapping("/{packageId}/assets/{assetId}/archive")
+    public ApiResponse<StylePackageDtos.AssetView> archiveAsset(@PathVariable Long packageId,
+                                                               @PathVariable Long assetId) {
+        return ApiResponse.ok(stylePackageService.archiveAsset(currentUser.requireUserId(), packageId, assetId));
+    }
+
+    @GetMapping("/{packageId}/manifest")
+    public ApiResponse<StylePackageDtos.AssetManifest> manifest(@PathVariable Long packageId) {
+        return ApiResponse.ok(stylePackageService.manifest(currentUser.requireUserId(), packageId));
+    }
+
     @GetMapping("/{packageId}/reviews")
     public ApiResponse<List<StylePackageDtos.RatingView>> reviews(@PathVariable Long packageId,
                                                                  @RequestParam(defaultValue = "1") int page,

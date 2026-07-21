@@ -84,7 +84,7 @@ pnpm dev
 需要本地展示风格包和任务市场时，在服务已启动且具备相应账号的环境中运行：
 
 ```powershell
-node scripts/seed-demo-market.mjs
+AIART_DEMO_PASSWORD='set-a-local-demo-password' node scripts/seed-demo-market.mjs
 ```
 
 脚本按既定规则设计为可重复执行。运行前仍建议先备份非开发数据库。

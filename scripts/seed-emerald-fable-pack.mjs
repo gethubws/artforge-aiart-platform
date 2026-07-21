@@ -7,7 +7,11 @@ const rootDir = path.resolve(scriptDir, '..')
 const manifestPath = path.join(rootDir, 'frontend', 'public', 'images', 'style-packs', 'emerald-fable', 'manifest.json')
 const apiBase = process.env.AIART_API_BASE || 'http://127.0.0.1:8080/api'
 const username = process.env.AIART_EMERALD_USER || 'demo_emerald_fable'
-const password = process.env.AIART_EMERALD_PASSWORD || 'Demo@2026'
+const password = process.env.AIART_EMERALD_PASSWORD
+
+if (!password) {
+  throw new Error('AIART_EMERALD_PASSWORD is required')
+}
 
 async function rawApi(method, route, token, payload) {
   const response = await fetch(`${apiBase}${route}`, {

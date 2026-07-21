@@ -3,7 +3,11 @@ import { spawnSync } from 'node:child_process'
 const apiBase = process.env.AIART_API_BASE || 'http://127.0.0.1:8080/api'
 const mysqlBin = process.env.MYSQL_BIN || 'D:/Type_Software_tool/Mysql_8.0.44/MySQL Server 8.0/bin/mysql.exe'
 const mysqlPassword = process.env.AIART_MYSQL_PASSWORD
-const demoPassword = process.env.AIART_DEMO_PASSWORD || 'Demo@2026'
+const demoPassword = process.env.AIART_DEMO_PASSWORD
+
+if (!demoPassword) {
+  throw new Error('AIART_DEMO_PASSWORD is required')
+}
 
 if (!mysqlPassword) {
   throw new Error('AIART_MYSQL_PASSWORD is required')

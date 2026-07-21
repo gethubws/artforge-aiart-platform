@@ -112,7 +112,7 @@ pnpm dev
 
 ```powershell
 python scripts/generate-emerald-fable-pack.py
-node scripts/seed-emerald-fable-pack.mjs
+AIART_EMERALD_PASSWORD='set-a-local-demo-password' node scripts/seed-emerald-fable-pack.mjs
 ```
 
 生成脚本支持 `AIART_IMAGE_API_BASE`、`AIART_IMAGE_MODEL` 和断点续跑；密钥只从环境变量读取。示例包包含 32 项资源，覆盖植被、建筑、道具、角色、生物、地形、UI 和特效。

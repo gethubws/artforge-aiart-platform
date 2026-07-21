@@ -10,6 +10,7 @@ frontend/.vite/
 # Environment
 .env
 .env.*
+!.env.example
 *.local
 
 # Runtime logs

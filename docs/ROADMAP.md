@@ -1,42 +1,48 @@
-# Roadmap
+# 产品路线图
 
-## Product Direction
+## 已完成的稳定基线
 
-Build a real, usable AIGC creation platform rather than a thesis demo. The first product spine is:
+- 账号注册、登录、JWT 会话与首次管理员初始化。
+- 双语结构化标签、提示词拼接、多场景预览图库与标签统计。
+- Forge / Stable Diffusion WebUI-compatible 生图工作台。
+- 生成结果、参数、提示词和标签自动写入作品库。
+- 个人作品库、公开作品广场、搜索、分页与内容密度切换。
+- 风格包市场、多人共创投稿、协作者、审核、版本、评价和访问记录。
+- 企业任务发布、投稿、审核、状态流转和积分记录。
+- 收藏、订阅、通知和个人中心。
+- 管理员运营概览、用户管理、内容审核、标签与预览图库维护。
 
-1. User accounts and personal workspace.
-2. Structured tag selection for prompt assembly.
-3. Forge/Stable Diffusion WebUI-compatible image generation.
-4. Artwork library with prompt and parameter traceability.
-5. Style packages for reusable visual direction.
-6. Points, tasks, review, and marketplace mechanics.
+## 下一阶段
 
-## Implementation Phases
+### 1. 质量保障
 
-### Phase 1: Working Creation Loop
+- 为认证、作品、风格包、任务和权限状态机补充后端集成测试。
+- 为登录、生图保存、风格包投稿和任务交付补充端到端测试。
+- 建立数据库迁移校验、API 契约检查和持续集成基线。
 
-- Register, login, and current user profile.
-- Tag tree and prompt assembly.
-- txt2img generation through a WebUI-compatible API.
-- Save generated image files and create artwork records.
-- Frontend workbench for prompt, model, sampler, size, seed, and high-res fix.
+### 2. 部署工程化
 
-### Phase 2: Creative Assets
+- 增加 Docker Compose 与生产环境配置模板。
+- 引入对象存储、缩略图任务和上传文件生命周期管理。
+- 增加健康检查、结构化日志、监控指标、备份与恢复流程。
+- 将 Forge 接入抽象为可配置提供方，为 ComfyUI 等适配器保留接口。
 
-- Style package CRUD and version history.
-- Prompt history and favorites.
-- Artwork search and structured tag metadata.
-- Point account and point transactions.
+### 3. 平台安全
 
-### Phase 3: Community and Operations
+- 收紧生产 CORS、上传类型、频率限制和管理员操作审计。
+- 完善刷新令牌、会话撤销、密码策略和账号恢复。
+- 对积分与交易相关操作加入幂等控制和一致性校验。
 
-- Style package marketplace.
-- Enterprise tasks and creator applications.
-- Content audit workflows.
-- Admin dashboards and platform metrics.
+### 4. 真实运营验证
 
-## Technical Decisions
+- 根据零结果搜索和热门组合数据维护标签库。
+- 通过真实投稿验证风格包协作、版本与审核规则。
+- 完善通知已读、订阅偏好、举报与申诉流程。
+- 基于实际访问与生成成本调整分页、缓存和异步任务策略。
 
-- Use Spring Boot 3.2.3 rather than Spring Boot 4.x for current ecosystem stability.
-- Use MyBatis-Plus because the old implementation already proved this path more practical than the JPA plan.
-- Keep SD integration provider-oriented so Forge, AUTOMATIC1111-compatible APIs, and future ComfyUI adapters can coexist.
+## 技术原则
+
+- 当前后端基线保持 Spring Boot 3.2.3 与 MyBatis-Plus，优先保证生态稳定和可维护性。
+- 风格包始终按“同一视觉风格下的多人共创作品集合”建模，而不是单一提示词商品。
+- 生图能力通过提供方边界接入，业务数据不与某个具体 WebUI 实现强耦合。
+- 新功能需要同时核对前端交互、后端权限、数据库约束和可测试性。

@@ -4,6 +4,31 @@
 
 当前仓库是可运行的稳定基线，目标是持续演进为真实可用的平台，而不是论文演示项目。
 
+## 界面预览
+
+### 创作工作台
+
+![ArtForge 创作工作台](docs/screenshots/02-workbench.png)
+
+### 作品广场
+
+![ArtForge 作品广场](docs/screenshots/03-community.png)
+
+### 风格包市场
+
+![ArtForge 风格包市场](docs/screenshots/04-style-market.png)
+
+### 任务市场
+
+![ArtForge 任务市场](docs/screenshots/05-task-market.png)
+
+<details>
+<summary>查看登录页面</summary>
+
+![ArtForge 登录页面](docs/screenshots/01-login.png)
+
+</details>
+
 ## 核心能力
 
 - **生图工作台**：对接 Forge / Stable Diffusion WebUI 兼容 API，支持模型、采样器、尺寸、种子、高清修复等参数。
@@ -32,8 +57,6 @@ database/                完整建库脚本与增量迁移
 docs/                    安装、路线图与标签图库规划
 frontend/                Vue 3 Web 应用
 scripts/                 演示数据辅助脚本
-代码实现文档/             早期设计与实现参考资料
-论文.docx                项目原始研究背景
 ```
 
 ## 快速开始
@@ -102,8 +125,8 @@ pnpm build
 - 不要提交真实数据库密码、API Key、JWT 密钥、生成文件或上传目录。
 - 生产环境必须替换 `AIART_JWT_SECRET`，并通过反向代理提供 HTTPS。
 - 当前 CORS 与本地文件存储策略以本地部署为基线，公网部署前应限制来源并配置持久化对象存储。
-- 本仓库目前未声明开源许可证，未经仓库所有者明确授权，不授予复制、修改或再分发权利。
+- 项目代码按 [MIT License](LICENSE) 开源。部署者仍需自行确认所使用模型、LoRA、生成图片与第三方素材的授权范围。
 
 ## 当前状态
 
-`v1.3.0` 是首个面向持续使用与 GitHub 托管整理的稳定版本。核心业务链路已经可用，后续重点是自动化测试、部署工程化、权限边界加固和真实运营数据验证。
+`v1.3.1` 是首个公开发布版本。核心业务链路已经可用，后续重点是自动化测试、部署工程化、权限边界加固和真实运营数据验证。

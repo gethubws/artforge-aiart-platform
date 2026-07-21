@@ -18,7 +18,7 @@ frontend/.vite/
 
 # Generated image sources and temporary batch inputs
 output/imagegen/
-tmp/imagegen/
+tmp/
 
 # IDE
 .idea/
